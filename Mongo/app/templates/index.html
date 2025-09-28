@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <title>Excel 上傳到 MongoDB</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1100px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        background: #f8f9fa;
+      }
+      h1 {
+        text-align: center;
+        font-size: 2.2rem;
+        margin-bottom: 2rem;
+      }
+      .main-layout {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .sidebar {
+        width: 180px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        padding: 1.2rem 0.8rem;
+        min-height: 350px;
+        margin-top: 0.5rem;
+        flex-shrink: 0;
+      }
+      .sidebar h2 {
+        font-size: 1.1rem;
+        margin-bottom: 1.2rem;
+        color: #007bff;
+        text-align: center;
+      }
+      .sidebar a {
+        display: block;
+        padding: .6rem 1rem;
+        margin-bottom: .5rem;
+        color: #333;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: background .2s;
+      }
+      .sidebar a.active, .sidebar a:hover {
+        background: #e6f0ff;
+        color: #007bff;
+      }
+      .content {
+        flex: 1 1 0;
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 1.2rem 1rem;
+        margin-bottom: 1rem;
+        max-width: 400px;
+        border: 1px solid #e3e3e3;
+      }
+      h3 {
+        margin-top: 0;
+        color: #007bff;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        min-width: 80px;
+        margin-bottom: .2rem;
+        color: #333;
+        font-size: 0.95rem;
+      }
+      input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
+        padding: .3rem;
+        margin-bottom: .6rem;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        width: 100%;
+        font-size: 0.95rem;
+        box-sizing: border-box;
+      }
+      button {
+        padding: .4rem 1rem;
+        background: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        margin-top: .3rem;
+        transition: background .2s;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      #upload-purchase-shipping-result, #upload-inventory-need-result, #upload-customer-need-result {
+        margin-top: .6rem;
+        color: #28a745;
+        font-weight: bold;
+        font-size: 0.95rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 0.8rem;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+      th {
+        background: #f2f2f2;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Excel 上傳至 MongoDB</h1>
+    <div class="main-layout">
+      <nav class="sidebar">
+        <h2>功能選單</h2>
+        <a href="#home" id="nav-home">首頁</a>
+        <a href="#inventory" id="nav-inventory">庫存管理</a>
+        <a href="#shipping" id="nav-shipping">進出貨管理</a>
+        <a href="#material" id="nav-material">物料資訊管理</a>
+        <a href="#pick" id="nav-pick">撿貨資訊表</a>
+      </nav>
+      <div class="content">
+        <div id="page-home" class="card">
+          <h3>資料庫匯入功能</h3>
+          <div class="card">
+            <h3>匯入採購與出貨表</h3>
+            <form id="upload-purchase-shipping-form" enctype="multipart/form-data">
+              <input type="file" id="purchase-shipping-file-input" name="file" accept=".xlsx" />
+              <br />
+              <button type="submit">匯入 Excel 採購與出貨表</button>
+            </form>
+            <div id="upload-purchase-shipping-result"></div>
+          </div>
+          <div class="card">
+            <h3>匯入庫存與採購需求表</h3>
+            <form id="upload-inventory-need-form" enctype="multipart/form-data">
+              <input type="file" id="inventory-need-file-input" name="file" accept=".xlsx" />
+              <br />
+              <button type="submit">匯入 Excel 庫存與採購需求表</button>
+            </form>
+            <div id="upload-inventory-need-result"></div>
+          </div>
+          <div class="card">
+            <h3>匯入客戶需求表</h3>
+            <form id="upload-customer-need-form" enctype="multipart/form-data">
+              <input type="file" id="customer-need-file-input" name="file" accept=".xlsx" />
+              <br />
+              <button type="submit">匯入 Excel 客戶需求表</button>
+            </form>
+            <div id="upload-customer-need-result"></div>
+          </div>
+        </div>
+        <div id="page-inventory" class="card" style="display:none;">
+          <h3>庫存管理</h3>
+          <div>（此頁面暫時空白，可自訂內容）</div>
+        </div>
+        <div id="page-shipping" class="card" style="display:none;">
+          <h3>進出貨管理</h3>
+          <div>（此頁面暫時空白，可自訂內容）</div>
+        </div>
+        <div id="page-material" class="card" style="display:none;">
+          <h3>物料資訊管理</h3>
+          <div>（此頁面暫時空白，可自訂內容）</div>
+        </div>
+  <div id="page-pick" class="card" style="display:none; width:100%; box-sizing:border-box; margin-left:0; margin-right:0;">
+          <h3>撿貨資訊表</h3>
+          <form id="pick-search-form" style="margin-bottom:1rem;">
+            <label for="pick-mic-start">MIC需求起日：</label>
+            <input type="date" id="pick-mic-start" name="mic_start" required />
+            <button type="submit">搜尋</button>
+          </form>
+          <div id="pick-search-result"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // 分頁切換
+      function showPage(pageId) {
+        document.getElementById('page-home').style.display = 'none';
+        document.getElementById('page-inventory').style.display = 'none';
+        document.getElementById('page-shipping').style.display = 'none';
+        document.getElementById('page-material').style.display = 'none';
+        document.getElementById('page-pick').style.display = 'none';
+        document.getElementById(pageId).style.display = '';
+        // sidebar active
+        document.getElementById('nav-home').classList.remove('active');
+        document.getElementById('nav-inventory').classList.remove('active');
+        document.getElementById('nav-shipping').classList.remove('active');
+        document.getElementById('nav-material').classList.remove('active');
+        document.getElementById('nav-pick').classList.remove('active');
+        if(pageId==='page-home') document.getElementById('nav-home').classList.add('active');
+        if(pageId==='page-inventory') document.getElementById('nav-inventory').classList.add('active');
+        if(pageId==='page-shipping') document.getElementById('nav-shipping').classList.add('active');
+        if(pageId==='page-material') document.getElementById('nav-material').classList.add('active');
+        if(pageId==='page-pick') document.getElementById('nav-pick').classList.add('active');
+      }
+      document.getElementById('nav-home').onclick = function(){showPage('page-home');};
+      document.getElementById('nav-inventory').onclick = function(){showPage('page-inventory');};
+      document.getElementById('nav-shipping').onclick = function(){showPage('page-shipping');};
+      document.getElementById('nav-material').onclick = function(){showPage('page-material');};
+      document.getElementById('nav-pick').onclick = function(){showPage('page-pick');};
+      // 預設顯示首頁
+      showPage('page-home');
+      // 匯入功能
+      document.getElementById('upload-purchase-shipping-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('file', document.getElementById('purchase-shipping-file-input').files[0]);
+        const res = await fetch('/api/upload_purchase_shipping', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        document.getElementById('upload-purchase-shipping-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆採購與出貨資料` : `錯誤：${data.error}`;
+      };
+      document.getElementById('upload-inventory-need-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('file', document.getElementById('inventory-need-file-input').files[0]);
+        const res = await fetch('/api/upload_inventory_need', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        document.getElementById('upload-inventory-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆庫存與採購需求資料` : `錯誤：${data.error}`;
+      };
+      document.getElementById('upload-customer-need-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('file', document.getElementById('customer-need-file-input').files[0]);
+        const res = await fetch('/api/upload_customer_need', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        document.getElementById('upload-customer-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆客戶需求資料` : `錯誤：${data.error}`;
+      };
+      // 撿貨資訊表搜尋功能
+      document.getElementById('pick-search-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const mic_start = document.getElementById('pick-mic-start').value;
+        const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}`);
+        const data = await res.json();
+        const resultDiv = document.getElementById('pick-search-result');
+        if (!data.ok) {
+          resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
+          return;
+        }
+        // 顯示三個資料庫結果
+        let html = '';
+        for (const [db, rows] of Object.entries(data.data)) {
+          html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : db === 'inventory_need' ? '庫存與採購需求表' : '客戶需求表'}</h4>`;
+          if (rows.length === 0) {
+            html += '<div>查無資料</div>';
+            continue;
+          }
+          const fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"];
+          if (db === 'customer_need') {
+            html += `<div style='overflow-x:auto;'><table border='1' cellpadding='4' style='margin-bottom:1rem; min-width:1200px;'><thead><tr>`;
+            for (const f of fields) html += `<th style='white-space:nowrap;'>${f}</th>`;
+            html += '</tr></thead><tbody>';
+            for (const row of rows) {
+              html += '<tr>';
+              for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
+              html += '</tr>';
+            }
+            html += '</tbody></table></div>';
+          } else {
+            html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
+            for (const f of fields) html += `<th>${f}</th>`;
+            html += '</tr></thead><tbody>';
+            for (const row of rows) {
+              html += '<tr>';
+              for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
+              html += '</tr>';
+            }
+            html += '</tbody></table>';
+          }
+        }
+        resultDiv.innerHTML = html;
+      };
+    </script>
+  </body>
+</html>

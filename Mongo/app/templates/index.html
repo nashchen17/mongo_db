@@ -4,132 +4,9 @@
     <meta charset="utf-8" />
     <title>Excel 上傳到 MongoDB</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        max-width: 1100px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-        background: #f8f9fa;
-      }
-      h1 {
-        text-align: center;
-        font-size: 2.2rem;
-        margin-bottom: 2rem;
-      }
-      .main-layout {
-        display: flex;
-        gap: 2rem;
-        align-items: flex-start;
-        width: 100%;
-        box-sizing: border-box;
-      }
-      .sidebar {
-        width: 180px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        padding: 1.2rem 0.8rem;
-        min-height: 350px;
-        margin-top: 0.5rem;
-        flex-shrink: 0;
-      }
-      .sidebar h2 {
-        font-size: 1.1rem;
-        margin-bottom: 1.2rem;
-        color: #007bff;
-        text-align: center;
-      }
-      .sidebar a {
-        display: block;
-        padding: .6rem 1rem;
-        margin-bottom: .5rem;
-        color: #333;
-        text-decoration: none;
-        border-radius: 4px;
-        font-size: 1rem;
-        transition: background .2s;
-      }
-      .sidebar a.active, .sidebar a:hover {
-        background: #e6f0ff;
-        color: #007bff;
-      }
-      .content {
-        flex: 1 1 0;
-        min-width: 0;
-        width: 100%;
-        box-sizing: border-box;
-      }
-      .card {
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        padding: 1.2rem 1rem;
-        margin-bottom: 1rem;
-        max-width: 400px;
-        border: 1px solid #e3e3e3;
-      }
-      h3 {
-        margin-top: 0;
-        color: #007bff;
-        font-size: 1.1rem;
-        margin-bottom: 1rem;
-      }
-      label {
-        display: block;
-        min-width: 80px;
-        margin-bottom: .2rem;
-        color: #333;
-        font-size: 0.95rem;
-      }
-      input[type="text"], input[type="number"], input[type="date"], input[type="file"] {
-        padding: .3rem;
-        margin-bottom: .6rem;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        width: 100%;
-        font-size: 0.95rem;
-        box-sizing: border-box;
-      }
-      button {
-        padding: .4rem 1rem;
-        background: #007bff;
-        color: #fff;
-        border: none;
-        border-radius: 3px;
-        cursor: pointer;
-        font-size: 0.95rem;
-        margin-top: .3rem;
-        transition: background .2s;
-      }
-      button:hover {
-        background: #0056b3;
-      }
-      #upload-purchase-shipping-result, #upload-inventory-need-result, #upload-customer-need-result {
-        margin-top: .6rem;
-        color: #28a745;
-        font-weight: bold;
-        font-size: 0.95rem;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 1rem;
-      }
-      th, td {
-        border: 1px solid #ddd;
-        padding: 0.8rem;
-        text-align: left;
-        font-size: 0.9rem;
-      }
-      th {
-        background: #f2f2f2;
-        color: #333;
-      }
-    </style>
+    <link rel="stylesheet" href="/static/main.css" />
   </head>
   <body>
-    <h1>Excel 上傳至 MongoDB</h1>
     <div class="main-layout">
       <nav class="sidebar">
         <h2>功能選單</h2>
@@ -182,12 +59,14 @@
           <h3>物料資訊管理</h3>
           <div>（此頁面暫時空白，可自訂內容）</div>
         </div>
-  <div id="page-pick" class="card" style="display:none; width:100%; box-sizing:border-box; margin-left:0; margin-right:0;">
+        <div id="page-pick" class="card" style="display:none; width:100%; box-sizing:border-box;">
           <h3>撿貨資訊表</h3>
-          <form id="pick-search-form" style="margin-bottom:1rem;">
-            <label for="pick-mic-start">MIC需求起日：</label>
-            <input type="date" id="pick-mic-start" name="mic_start" required />
-            <button type="submit">搜尋</button>
+          <form id="pick-search-form" style="margin-bottom:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+            <label for="pick-mic-start" style="margin-bottom:0;">MIC需求起日區間：</label>
+            <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px;" />
+            <span style="font-size:1.2em;">～</span>
+            <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px;" />
+            <button type="submit" style="margin-left:1rem;">搜尋</button>
           </form>
           <div id="pick-search-result"></div>
         </div>
@@ -259,9 +138,12 @@
       document.getElementById('pick-search-form').onsubmit = async function(e) {
         e.preventDefault();
         const mic_start = document.getElementById('pick-mic-start').value;
-        const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}`);
-        const data = await res.json();
+        const mic_end = document.getElementById('pick-mic-end').value;
         const resultDiv = document.getElementById('pick-search-result');
+        // reset table before search
+        resultDiv.innerHTML = '';
+        const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}`);
+        const data = await res.json();
         if (!data.ok) {
           resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
           return;

@@ -177,49 +177,57 @@ def search_pick():
     Query param: mic_start (MIC需求起日)
     """
     mic_start = request.args.get("mic_start")
-    if not mic_start:
-        return jsonify({"ok": False, "error": "缺少 MIC需求起日 參數"}), 400
+    mic_end = request.args.get("mic_end")
+    if not mic_start or not mic_end:
+        return jsonify({"ok": False, "error": "缺少 MIC需求起日區間 參數"}), 400
     # 欄位
     fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"]
     result = {}
-    # 各資料庫搜尋
-    # 先依日期搜尋
+    # 日期區間搜尋
+    from datetime import datetime
+    def parse_date(s):
+        for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%dT%H:%M:%S", "%Y/%m/%dT%H:%M:%S"]:
+            try:
+                return datetime.strptime(s, fmt)
+            except Exception:
+                continue
+        try:
+            return datetime.fromisoformat(s)
+        except Exception:
+            return None
+    start_dt = parse_date(mic_start)
+    end_dt = parse_date(mic_end)
     pick_results = []
+    import sys
     for name, coll in [
         ("purchase_shipping", purchase_shipping_collection),
         ("inventory_need", inventory_need_collection),
         ("customer_need", customer_need_collection)
     ]:
-        # 支援多種日期格式搜尋，包含 ISODate 格式與時間部分
-        try:
-            from datetime import datetime
-            iso_date = None
-            if len(mic_start) in [8, 10]:
-                # yyyy/mm/dd 或 yyyy-mm-dd
-                fmt = "%Y/%m/%d" if "/" in mic_start else "%Y-%m-%d"
-                iso_date = datetime.strptime(mic_start, fmt)
-                # 也搜尋該日的 00:00:00
-                iso_date_full = datetime.strptime(mic_start, fmt).replace(hour=0, minute=0, second=0)
-            elif len(mic_start) == 19:
-                # yyyy-mm-ddTHH:MM:SS
-                iso_date = datetime.fromisoformat(mic_start)
-                iso_date_full = iso_date
-            else:
-                iso_date_full = None
-        except Exception:
-            iso_date = None
-            iso_date_full = None
-        query = {"$or": [
-            {"MIC需求起日": mic_start},
-            {"MIC需求起日": mic_start.replace("-", "/")},
-            {"MIC需求起日": mic_start.replace("/", "-")},
-            {"MIC需求起日": iso_date} if iso_date else {},
-            {"MIC需求起日": iso_date_full} if iso_date_full else {},
-            {"MIC需求起日": {"$regex": f"^{mic_start}"}}  # 支援部分比對
-        ]}
+        query = {"$or": []}
+        for fmt in [lambda s: s, lambda s: s.replace("-", "/"), lambda s: s.replace("/", "-")]:
+            start_str = fmt(mic_start)
+            end_str = fmt(mic_end)
+            query["$or"].append({"MIC需求起日": {"$gte": start_str, "$lte": end_str}})
+            query["$or"].append({"MIC需求起日": {"$in": [start_str, end_str]}})
+        if start_dt and end_dt:
+            query["$or"].append({"MIC需求起日": {"$gte": start_dt, "$lte": end_dt}})
+            query["$or"].append({"MIC需求起日": {"$in": [start_dt, end_dt]}})
+        # Debug print
+        print(f"[DEBUG] Searching {name} with query: {query}", file=sys.stderr)
         docs = list(coll.find(query, {f: 1 for f in fields}))
+        print(f"[DEBUG] Found {len(docs)} records in {name} for MIC需求起日 between {mic_start} and {mic_end}", file=sys.stderr)
+        import math
         for d in docs:
             d.pop("_id", None)
+            # 日期欄位格式化，移除 T 之後內容
+            for date_field in ["MIC需求起日", "MIC需求訖日"]:
+                if date_field in d and isinstance(d[date_field], str):
+                    d[date_field] = d[date_field].split('T')[0]
+            # 將 NaN 轉為 None，避免 JSON 錯誤
+            for k, v in d.items():
+                if isinstance(v, float) and math.isnan(v):
+                    d[k] = None
             pick_results.append(d)
     # 取得所有料號
     partnos = list({row.get("料號") for row in pick_results if row.get("料號")})
@@ -233,10 +241,10 @@ def search_pick():
     search_collections.append(products_collection)
     # 其他三個資料庫
     search_collections.extend([purchase_shipping_collection, inventory_need_collection, customer_need_collection])
+    import math
     for partno in partnos:
         enrich_data[partno] = {}
         for coll in search_collections:
-            # 嘗試三種型態查詢
             for key in [partno, None]:
                 if key is None:
                     try:
@@ -250,9 +258,11 @@ def search_pick():
                     doc = coll.find_one({"料號": k}, {f: 1 for f in enrich_fields})
                     if doc:
                         for f in enrich_fields:
-                            if f in doc and doc[f] is not None and f not in enrich_data[partno]:
-                                enrich_data[partno][f] = doc[f]
-                    # 若三欄都找到就跳出
+                            val = doc.get(f)
+                            if isinstance(val, float) and math.isnan(val):
+                                val = None
+                            if val is not None and f not in enrich_data[partno]:
+                                enrich_data[partno][f] = val
                     if all(f in enrich_data[partno] for f in enrich_fields):
                         break
                 if all(f in enrich_data[partno] for f in enrich_fields):
@@ -262,8 +272,11 @@ def search_pick():
         partno = row.get("料號")
         if partno and partno in enrich_data:
             for f in enrich_fields:
-                if enrich_data[partno].get(f) is not None:
-                    row[f] = enrich_data[partno][f]
+                val = enrich_data[partno].get(f)
+                if isinstance(val, float) and math.isnan(val):
+                    val = None
+                if val is not None:
+                    row[f] = val
     # 分組回傳
     result = {"pick": pick_results}
     return jsonify({"ok": True, "data": result})

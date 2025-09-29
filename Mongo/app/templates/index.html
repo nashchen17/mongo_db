@@ -62,15 +62,14 @@
         <div id="page-pick" class="card" style="display:none; width:100%; box-sizing:border-box;">
           <h3>撿貨資訊表</h3>
           <form id="pick-search-form" style="margin-bottom:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
-            <div style="display:flex; gap:1rem; align-items:center; flex:1;">
+            <div style="display:flex; gap:1rem; align-items:center; width:100%; margin-bottom:0.5rem;">
               <label for="pick-mic-start" style="margin-bottom:0;">MIC需求起日區間：</label>
               <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px;" />
               <span style="font-size:1.2em;">～</span>
               <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px;" />
               <button type="submit" style="margin-left:1rem;">搜尋</button>
             </div>
-            <div style="height:1rem;"></div>
-            <div style="display:flex; gap:1rem; align-items:center; flex:1;">
+            <div style="display:flex; gap:1rem; align-items:center; width:100%;">
               <label for="pick-sort-field" style="margin-bottom:0;">排序欄位：</label>
               <select id="pick-sort-field" name="sort_field" style="width:140px;">
                 <option value="MIC需求起日">MIC需求起日</option>

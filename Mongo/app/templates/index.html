@@ -155,112 +155,134 @@
         document.getElementById('upload-customer-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆客戶需求資料` : `錯誤：${data.error}`;
       };
       // 撿貨資訊表搜尋功能
-      document.getElementById('pick-search-form').onsubmit = async function(e) {
-        e.preventDefault();
-  const mic_start = document.getElementById('pick-mic-start').value;
-  const mic_end = document.getElementById('pick-mic-end').value;
-  const sort_field = document.getElementById('pick-sort-field').value;
-  const sort_order = document.getElementById('pick-sort-order').value;
-  const resultDiv = document.getElementById('pick-search-result');
-  // reset table before search
-  resultDiv.innerHTML = '';
-  const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}&sort_field=${encodeURIComponent(sort_field)}&sort_order=${encodeURIComponent(sort_order)}`);
-  const data = await res.json();
-        if (!data.ok) {
-          resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
-          return;
-        }
-        // 顯示三個資料庫結果
-        let html = '';
-        for (const [db, rows] of Object.entries(data.data)) {
-          if (db === 'customer_need') {
-            html += `<div style='display:flex; align-items:center; justify-content:space-between;'>`;
-            html += `<h4 style='margin:0;'>客戶需求表</h4>`;
-            html += `<div style='display:flex; gap:0.5rem; align-items:center;'>
-              <select id='pick-sort-field-inline' style='width:120px;'>
-                <option value='MIC需求起日'>MIC需求起日</option>
-                <option value='MIC需求訖日'>MIC需求訖日</option>
-                <option value='料號'>料號</option>
-                <option value='版本'>版本</option>
-                <option value='產品中文名稱'>產品中文名稱</option>
-                <option value='數量'>數量</option>
-                <option value='單價'>單價</option>
-                <option value='PO單號'>PO單號</option>
-                <option value='庫存'>庫存</option>
-              </select>
-              <select id='pick-sort-order-inline' style='width:80px;'>
-                <option value='asc'>升冪</option>
-                <option value='desc'>降冪</option>
-              </select>
-              <span>排序欄位</span>
-              <button id='pick-search-btn-inline' style='margin-left:1rem;'>搜尋</button>
-            </div></div>`;
-        // 排序欄位 inline 控制
-        const sortFieldInline = document.getElementById('pick-sort-field-inline');
-        const sortOrderInline = document.getElementById('pick-sort-order-inline');
-        const searchBtnInline = document.getElementById('pick-search-btn-inline');
-        if (sortFieldInline && sortOrderInline && searchBtnInline) {
-          // 預設值與主表單同步
-          sortFieldInline.value = document.getElementById('pick-sort-field').value;
-          sortOrderInline.value = document.getElementById('pick-sort-order').value;
-          sortFieldInline.onchange = function() {
-            document.getElementById('pick-sort-field').value = sortFieldInline.value;
-          };
-          sortOrderInline.onchange = function() {
-            document.getElementById('pick-sort-order').value = sortOrderInline.value;
-          };
-          searchBtnInline.onclick = function(e) {
-            e.preventDefault();
-            document.getElementById('pick-search-form').dispatchEvent(new Event('submit'));
-          };
-        }
-          }
-          if (rows.length === 0) {
-            html += '<div>查無資料</div>';
-            continue;
-          }
-          const fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"];
-          if (db === 'customer_need') {
-            html += `<div style='overflow-x:auto;'><table border='1' cellpadding='4' style='margin-bottom:1rem; min-width:1200px;'><thead><tr>`;
-            for (const f of fields) html += `<th style='white-space:nowrap;'>${f}</th>`;
-            html += '</tr></thead><tbody>';
-            for (const row of rows) {
-              html += '<tr>';
-              for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
-              html += '</tr>';
+        // 前端排序用暫存
+        let pickSearchData = null;
+        function sortRows(rows, field, order) {
+          const numericFields = ["數量", "單價", "版本", "庫存"];
+          return rows.slice().sort((a, b) => {
+            let va = a[field], vb = b[field];
+            if (numericFields.includes(field)) {
+              va = Number(va) || 0;
+              vb = Number(vb) || 0;
+            } else if (field.includes("日")) {
+              va = va ? new Date(va) : new Date(0);
+              vb = vb ? new Date(vb) : new Date(0);
+            } else {
+              va = va ? va.toString() : "";
+              vb = vb ? vb.toString() : "";
             }
-            html += '</tbody></table></div>';
-          } else {
-            html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表'}</h4>`;
-            html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
-            for (const f of fields) html += `<th>${f}</th>`;
-            html += '</tr></thead><tbody>';
-            for (const row of rows) {
-              html += '<tr>';
-              for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
-              html += '</tr>';
+            if (va < vb) return order === "asc" ? -1 : 1;
+            if (va > vb) return order === "asc" ? 1 : -1;
+            return 0;
+          });
+        }
+        function renderPickTable(data, sort_field, sort_order) {
+          const resultDiv = document.getElementById('pick-search-result');
+          let html = '';
+          for (const [db, rows] of Object.entries(data)) {
+            let sortedRows = sortRows(rows, sort_field, sort_order);
+            const fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"];
+            if (db === 'customer_need') {
+              html += `<div style='display:flex; align-items:center; justify-content:space-between;'>`;
+              html += `<h4 style='margin:0;'>客戶需求表</h4>`;
+              html += `<div style='display:flex; gap:0.5rem; align-items:center;'>
+                <select id='pick-sort-field-inline' style='width:120px;'>
+                  <option value='MIC需求起日'>MIC需求起日</option>
+                  <option value='MIC需求訖日'>MIC需求訖日</option>
+                  <option value='料號'>料號</option>
+                  <option value='版本'>版本</option>
+                  <option value='產品中文名稱'>產品中文名稱</option>
+                  <option value='數量'>數量</option>
+                  <option value='單價'>單價</option>
+                  <option value='PO單號'>PO單號</option>
+                  <option value='庫存'>庫存</option>
+                </select>
+                <select id='pick-sort-order-inline' style='width:80px;'>
+                  <option value='asc'>升冪</option>
+                  <option value='desc'>降冪</option>
+                </select>
+                <span>排序欄位</span>
+                <button id='pick-search-btn-inline' style='margin-left:1rem;'>搜尋</button>
+              </div></div>`;
             }
-            html += '</tbody></table>';
+            if (sortedRows.length === 0) {
+              html += '<div>查無資料</div>';
+              continue;
+            }
+            if (db === 'customer_need') {
+              html += `<div style='overflow-x:auto;'><table border='1' cellpadding='4' style='margin-bottom:1rem; min-width:1200px;'><thead><tr>`;
+              for (const f of fields) html += `<th style='white-space:nowrap;'>${f}</th>`;
+              html += '</tr></thead><tbody>';
+              for (const row of sortedRows) {
+                html += '<tr>';
+                for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
+                html += '</tr>';
+              }
+              html += '</tbody></table></div>';
+            } else {
+              html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表'}</h4>`;
+              html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
+              for (const f of fields) html += `<th>${f}</th>`;
+              html += '</tr></thead><tbody>';
+              for (const row of sortedRows) {
+                html += '<tr>';
+                for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
+                html += '</tr>';
+              }
+              html += '</tbody></table>';
+            }
+          }
+          resultDiv.innerHTML = html;
+          // 排序欄位 inline 控制
+          const sortFieldInline = document.getElementById('pick-sort-field-inline');
+          const sortOrderInline = document.getElementById('pick-sort-order-inline');
+          const searchBtnInline = document.getElementById('pick-search-btn-inline');
+          if (sortFieldInline && sortOrderInline && searchBtnInline) {
+            sortFieldInline.value = document.getElementById('pick-sort-field').value;
+            sortOrderInline.value = document.getElementById('pick-sort-order').value;
+            sortFieldInline.onchange = function() {
+              document.getElementById('pick-sort-field').value = sortFieldInline.value;
+              renderPickTable(pickSearchData, sortFieldInline.value, sortOrderInline.value);
+            };
+            sortOrderInline.onchange = function() {
+              document.getElementById('pick-sort-order').value = sortOrderInline.value;
+              renderPickTable(pickSearchData, sortFieldInline.value, sortOrderInline.value);
+            };
+            searchBtnInline.onclick = function(e) {
+              e.preventDefault();
+              renderPickTable(pickSearchData, sortFieldInline.value, sortOrderInline.value);
+            };
           }
         }
-        resultDiv.innerHTML = html;
-        // 排序欄位 inline 控制
-        const sortFieldInline = document.getElementById('pick-sort-field-inline');
-        const sortOrderInline = document.getElementById('pick-sort-order-inline');
-        if (sortFieldInline && sortOrderInline) {
-          // 預設值與主表單同步
-          sortFieldInline.value = document.getElementById('pick-sort-field').value;
-          sortOrderInline.value = document.getElementById('pick-sort-order').value;
-          sortFieldInline.onchange = function() {
-            document.getElementById('pick-sort-field').value = sortFieldInline.value;
-            document.getElementById('pick-search-form').dispatchEvent(new Event('submit'));
-          };
-          sortOrderInline.onchange = function() {
-            document.getElementById('pick-sort-order').value = sortOrderInline.value;
-            document.getElementById('pick-search-form').dispatchEvent(new Event('submit'));
-          };
-        }
-      };
+        // 主排序欄位監聽
+        document.getElementById('pick-sort-field').onchange = function() {
+          if (pickSearchData) {
+            renderPickTable(pickSearchData, this.value, document.getElementById('pick-sort-order').value);
+          }
+        };
+        document.getElementById('pick-sort-order').onchange = function() {
+          if (pickSearchData) {
+            renderPickTable(pickSearchData, document.getElementById('pick-sort-field').value, this.value);
+          }
+        };
+        document.getElementById('pick-search-form').onsubmit = async function(e) {
+          e.preventDefault();
+          const mic_start = document.getElementById('pick-mic-start').value;
+          const mic_end = document.getElementById('pick-mic-end').value;
+          const sort_field = document.getElementById('pick-sort-field').value;
+          const sort_order = document.getElementById('pick-sort-order').value;
+          const resultDiv = document.getElementById('pick-search-result');
+          resultDiv.innerHTML = '';
+          const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}`);
+          const data = await res.json();
+          if (!data.ok) {
+            resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
+            pickSearchData = null;
+            return;
+          }
+          pickSearchData = data.data;
+          renderPickTable(pickSearchData, sort_field, sort_order);
+        };
     </script>
   </body>
 </html>

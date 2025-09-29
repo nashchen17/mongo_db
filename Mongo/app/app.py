@@ -178,6 +178,8 @@ def search_pick():
     """
     mic_start = request.args.get("mic_start")
     mic_end = request.args.get("mic_end")
+    sort_field = request.args.get("sort_field", "MIC需求起日")
+    sort_order = request.args.get("sort_order", "asc")
     if not mic_start or not mic_end:
         return jsonify({"ok": False, "error": "缺少 MIC需求起日區間 參數"}), 400
     # 欄位
@@ -204,27 +206,59 @@ def search_pick():
         ("inventory_need", inventory_need_collection),
         ("customer_need", customer_need_collection)
     ]:
-        query = {"$or": []}
-        for fmt in [lambda s: s, lambda s: s.replace("-", "/"), lambda s: s.replace("/", "-")]:
-            start_str = fmt(mic_start)
-            end_str = fmt(mic_end)
-            query["$or"].append({"MIC需求起日": {"$gte": start_str, "$lte": end_str}})
-            query["$or"].append({"MIC需求起日": {"$in": [start_str, end_str]}})
-        if start_dt and end_dt:
-            query["$or"].append({"MIC需求起日": {"$gte": start_dt, "$lte": end_dt}})
-            query["$or"].append({"MIC需求起日": {"$in": [start_dt, end_dt]}})
+        is_single_day = mic_start == mic_end
+        from datetime import timedelta
+        if is_single_day:
+            query = {"$or": []}
+            for fmt in [lambda s: s, lambda s: s.replace("-", "/"), lambda s: s.replace("/", "-")]:
+                start_str = fmt(mic_start)
+                query["$or"].append({"MIC需求起日": start_str})
+                query["$or"].append({"MIC需求起日": {"$regex": f"^{start_str}T"}})
+            if start_dt:
+                day_start = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                day_end = day_start + timedelta(days=1) - timedelta(microseconds=1)
+                query["$or"].append({"MIC需求起日": {"$gte": day_start, "$lte": day_end}})
+                query["$or"].append({"MIC需求起日": start_dt})
+        else:
+            from datetime import datetime, timedelta
+            start_date = None
+            end_date = None
+            for fmt in ["%Y-%m-%d", "%Y/%m/%d"]:
+                try:
+                    start_date = datetime.strptime(mic_start, fmt)
+                    end_date = datetime.strptime(mic_end, fmt)
+                    break
+                except Exception:
+                    continue
+            if not start_date or not end_date:
+                query = {"MIC需求起日": None}
+            else:
+                next_day = end_date + timedelta(days=1)
+                query = {
+                    "$or": [
+                        {"$expr": {
+                            "$and": [
+                                {"$gte": [{"$substr": ["$MIC需求起日", 0, 10]}, start_date.strftime("%Y-%m-%d")]},
+                                {"$lt": [{"$substr": ["$MIC需求起日", 0, 10]}, next_day.strftime("%Y-%m-%d")]} 
+                            ]
+                        }},
+                        {"MIC需求起日": {"$gte": start_date, "$lt": next_day}}
+                    ]
+                }
         # Debug print
         print(f"[DEBUG] Searching {name} with query: {query}", file=sys.stderr)
         docs = list(coll.find(query, {f: 1 for f in fields}))
+        # 排序
+        reverse = sort_order == "desc"
+        if sort_field in fields:
+            docs.sort(key=lambda d: (d.get(sort_field) if d.get(sort_field) is not None else ''), reverse=reverse)
         print(f"[DEBUG] Found {len(docs)} records in {name} for MIC需求起日 between {mic_start} and {mic_end}", file=sys.stderr)
         import math
         for d in docs:
             d.pop("_id", None)
-            # 日期欄位格式化，移除 T 之後內容
             for date_field in ["MIC需求起日", "MIC需求訖日"]:
                 if date_field in d and isinstance(d[date_field], str):
                     d[date_field] = d[date_field].split('T')[0]
-            # 將 NaN 轉為 None，避免 JSON 錯誤
             for k, v in d.items():
                 if isinstance(v, float) and math.isnan(v):
                     d[k] = None

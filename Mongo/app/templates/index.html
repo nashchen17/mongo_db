@@ -62,11 +62,32 @@
         <div id="page-pick" class="card" style="display:none; width:100%; box-sizing:border-box;">
           <h3>撿貨資訊表</h3>
           <form id="pick-search-form" style="margin-bottom:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
-            <label for="pick-mic-start" style="margin-bottom:0;">MIC需求起日區間：</label>
-            <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px;" />
-            <span style="font-size:1.2em;">～</span>
-            <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px;" />
-            <button type="submit" style="margin-left:1rem;">搜尋</button>
+            <div style="display:flex; gap:1rem; align-items:center; flex:1;">
+              <label for="pick-mic-start" style="margin-bottom:0;">MIC需求起日區間：</label>
+              <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px;" />
+              <span style="font-size:1.2em;">～</span>
+              <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px;" />
+              <button type="submit" style="margin-left:1rem;">搜尋</button>
+            </div>
+            <div style="height:1rem;"></div>
+            <div style="display:flex; gap:1rem; align-items:center; flex:1;">
+              <label for="pick-sort-field" style="margin-bottom:0;">排序欄位：</label>
+              <select id="pick-sort-field" name="sort_field" style="width:140px;">
+                <option value="MIC需求起日">MIC需求起日</option>
+                <option value="MIC需求訖日">MIC需求訖日</option>
+                <option value="料號">料號</option>
+                <option value="版本">版本</option>
+                <option value="產品中文名稱">產品中文名稱</option>
+                <option value="數量">數量</option>
+                <option value="單價">單價</option>
+                <option value="PO單號">PO單號</option>
+                <option value="庫存">庫存</option>
+              </select>
+              <select id="pick-sort-order" name="sort_order" style="width:80px;">
+                <option value="asc">升冪</option>
+                <option value="desc">降冪</option>
+              </select>
+            </div>
           </form>
           <div id="pick-search-result"></div>
         </div>
@@ -137,13 +158,15 @@
       // 撿貨資訊表搜尋功能
       document.getElementById('pick-search-form').onsubmit = async function(e) {
         e.preventDefault();
-        const mic_start = document.getElementById('pick-mic-start').value;
-        const mic_end = document.getElementById('pick-mic-end').value;
-        const resultDiv = document.getElementById('pick-search-result');
-        // reset table before search
-        resultDiv.innerHTML = '';
-        const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}`);
-        const data = await res.json();
+  const mic_start = document.getElementById('pick-mic-start').value;
+  const mic_end = document.getElementById('pick-mic-end').value;
+  const sort_field = document.getElementById('pick-sort-field').value;
+  const sort_order = document.getElementById('pick-sort-order').value;
+  const resultDiv = document.getElementById('pick-search-result');
+  // reset table before search
+  resultDiv.innerHTML = '';
+  const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}&sort_field=${encodeURIComponent(sort_field)}&sort_order=${encodeURIComponent(sort_order)}`);
+  const data = await res.json();
         if (!data.ok) {
           resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
           return;
@@ -151,7 +174,48 @@
         // 顯示三個資料庫結果
         let html = '';
         for (const [db, rows] of Object.entries(data.data)) {
-          html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : db === 'inventory_need' ? '庫存與採購需求表' : '客戶需求表'}</h4>`;
+          if (db === 'customer_need') {
+            html += `<div style='display:flex; align-items:center; justify-content:space-between;'>`;
+            html += `<h4 style='margin:0;'>客戶需求表</h4>`;
+            html += `<div style='display:flex; gap:0.5rem; align-items:center;'>
+              <select id='pick-sort-field-inline' style='width:120px;'>
+                <option value='MIC需求起日'>MIC需求起日</option>
+                <option value='MIC需求訖日'>MIC需求訖日</option>
+                <option value='料號'>料號</option>
+                <option value='版本'>版本</option>
+                <option value='產品中文名稱'>產品中文名稱</option>
+                <option value='數量'>數量</option>
+                <option value='單價'>單價</option>
+                <option value='PO單號'>PO單號</option>
+                <option value='庫存'>庫存</option>
+              </select>
+              <select id='pick-sort-order-inline' style='width:80px;'>
+                <option value='asc'>升冪</option>
+                <option value='desc'>降冪</option>
+              </select>
+              <span>排序欄位</span>
+              <button id='pick-search-btn-inline' style='margin-left:1rem;'>搜尋</button>
+            </div></div>`;
+        // 排序欄位 inline 控制
+        const sortFieldInline = document.getElementById('pick-sort-field-inline');
+        const sortOrderInline = document.getElementById('pick-sort-order-inline');
+        const searchBtnInline = document.getElementById('pick-search-btn-inline');
+        if (sortFieldInline && sortOrderInline && searchBtnInline) {
+          // 預設值與主表單同步
+          sortFieldInline.value = document.getElementById('pick-sort-field').value;
+          sortOrderInline.value = document.getElementById('pick-sort-order').value;
+          sortFieldInline.onchange = function() {
+            document.getElementById('pick-sort-field').value = sortFieldInline.value;
+          };
+          sortOrderInline.onchange = function() {
+            document.getElementById('pick-sort-order').value = sortOrderInline.value;
+          };
+          searchBtnInline.onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('pick-search-form').dispatchEvent(new Event('submit'));
+          };
+        }
+          }
           if (rows.length === 0) {
             html += '<div>查無資料</div>';
             continue;
@@ -168,6 +232,7 @@
             }
             html += '</tbody></table></div>';
           } else {
+            html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表'}</h4>`;
             html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
             for (const f of fields) html += `<th>${f}</th>`;
             html += '</tr></thead><tbody>';
@@ -180,6 +245,22 @@
           }
         }
         resultDiv.innerHTML = html;
+        // 排序欄位 inline 控制
+        const sortFieldInline = document.getElementById('pick-sort-field-inline');
+        const sortOrderInline = document.getElementById('pick-sort-order-inline');
+        if (sortFieldInline && sortOrderInline) {
+          // 預設值與主表單同步
+          sortFieldInline.value = document.getElementById('pick-sort-field').value;
+          sortOrderInline.value = document.getElementById('pick-sort-order').value;
+          sortFieldInline.onchange = function() {
+            document.getElementById('pick-sort-field').value = sortFieldInline.value;
+            document.getElementById('pick-search-form').dispatchEvent(new Event('submit'));
+          };
+          sortOrderInline.onchange = function() {
+            document.getElementById('pick-sort-order').value = sortOrderInline.value;
+            document.getElementById('pick-search-form').dispatchEvent(new Event('submit'));
+          };
+        }
       };
     </script>
   </body>

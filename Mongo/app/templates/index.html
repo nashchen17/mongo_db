@@ -61,17 +61,17 @@
         </div>
         <div id="page-pick" class="card" style="display:none; width:100%; box-sizing:border-box;">
           <h3>撿貨資訊表</h3>
-          <form id="pick-search-form" style="margin-bottom:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
-            <div style="display:flex; gap:1rem; align-items:center; width:100%; margin-bottom:0.5rem;">
-              <label for="pick-mic-start" style="margin-bottom:0;">MIC需求起日區間：</label>
-              <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px;" />
-              <span style="font-size:1.2em;">～</span>
-              <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px;" />
-              <button type="submit" style="margin-left:1rem;">搜尋</button>
+          <form id="pick-search-form" style="margin-bottom:1rem; display:flex; gap:1rem; align-items:baseline; flex-wrap:wrap;">
+            <div style="display:flex; gap:1rem; align-items:baseline; width:100%; margin-bottom:0.5rem;">
+              <label for="pick-mic-start" style="margin-bottom:0; min-width:120px; line-height:1;">MIC需求起日區間：</label>
+              <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px; height:34px;" />
+              <span style="font-size:1.2em; line-height:1;">～</span>
+              <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px; height:34px;" />
+              <button type="submit" style="margin-left:1rem; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; height:34px; line-height:1;">搜尋</button>
             </div>
             <div style="display:flex; gap:1rem; align-items:center; width:100%;">
-              <label for="pick-sort-field" style="margin-bottom:0;">排序欄位：</label>
-              <select id="pick-sort-field" name="sort_field" style="width:140px;">
+              <label for="pick-sort-field" style="margin-bottom:0; min-width:80px; line-height:1;">排序欄位：</label>
+              <select id="pick-sort-field" name="sort_field" style="width:140px; height:34px;">
                 <option value="MIC需求起日">MIC需求起日</option>
                 <option value="MIC需求訖日">MIC需求訖日</option>
                 <option value="料號">料號</option>
@@ -82,10 +82,11 @@
                 <option value="PO單號">PO單號</option>
                 <option value="庫存">庫存</option>
               </select>
-              <select id="pick-sort-order" name="sort_order" style="width:80px;">
+              <select id="pick-sort-order" name="sort_order" style="width:80px; height:34px;">
                 <option value="asc">升冪</option>
                 <option value="desc">降冪</option>
               </select>
+              <button id="export-excel-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; display: none; margin-left: 2rem; height:34px; line-height:1;">匯出Excel</button>
             </div>
           </form>
           <div id="pick-search-result"></div>
@@ -282,6 +283,83 @@
           }
           pickSearchData = data.data;
           renderPickTable(pickSearchData, sort_field, sort_order);
+          // 顯示匯出按鈕
+          document.getElementById('export-excel-btn').style.display = 'inline-block';
+        };
+
+        // 匯出Excel功能
+        document.getElementById('export-excel-btn').onclick = function() {
+          if (!pickSearchData) return;
+          const sort_field = document.getElementById('pick-sort-field').value;
+          const sort_order = document.getElementById('pick-sort-order').value;
+          
+          // 準備匯出資料
+          let exportData = [];
+          for (const [db, rows] of Object.entries(pickSearchData)) {
+            let sortedRows = sortRows(rows, sort_field, sort_order);
+            const dbName = db === 'customer_need' ? '客戶需求表' : 
+                          db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表';
+            
+            // 新增分隔行
+            if (exportData.length > 0) {
+              exportData.push({});
+            }
+            exportData.push({ 'MIC需求起日': dbName });
+            exportData.push({});
+            
+            // 新增標題行
+            exportData.push({
+              'MIC需求起日': 'MIC需求起日',
+              'MIC需求訖日': 'MIC需求訖日',
+              '料號': '料號',
+              '版本': '版本',
+              '產品中文名稱': '產品中文名稱',
+              '數量': '數量',
+              '單價': '單價',
+              'PO單號': 'PO單號',
+              '庫存': '庫存'
+            });
+            
+            // 新增資料行
+            sortedRows.forEach(row => {
+              exportData.push({
+                'MIC需求起日': row['MIC需求起日'] || '',
+                'MIC需求訖日': row['MIC需求訖日'] || '',
+                '料號': row['料號'] || '',
+                '版本': row['版本'] || '',
+                '產品中文名稱': row['產品中文名稱'] || '',
+                '數量': row['數量'] || '',
+                '單價': row['單價'] || '',
+                'PO單號': row['PO單號'] || '',
+                '庫存': row['庫存'] || ''
+              });
+            });
+          }
+          
+          // 轉換為CSV格式
+          const fields = ['MIC需求起日', 'MIC需求訖日', '料號', '版本', '產品中文名稱', '數量', '單價', 'PO單號', '庫存'];
+          let csvContent = '\uFEFF'; // BOM for UTF-8
+          csvContent += fields.join(',') + '\n';
+          
+          exportData.forEach(row => {
+            const values = fields.map(field => {
+              const value = row[field] || '';
+              return '"' + value.toString().replace(/"/g, '""') + '"';
+            });
+            csvContent += values.join(',') + '\n';
+          });
+          
+          // 下載檔案
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          const today = new Date().toISOString().split('T')[0];
+          link.setAttribute('download', `撿貨資訊表_${today}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         };
     </script>
   </body>

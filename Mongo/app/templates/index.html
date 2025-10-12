@@ -92,8 +92,9 @@
           <div id="pick-search-result"></div>
         </div>
       </div>
-    </div>
-    <script>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
       // 分頁切換
       function showPage(pageId) {
         document.getElementById('page-home').style.display = 'none';
@@ -287,79 +288,90 @@
           document.getElementById('export-excel-btn').style.display = 'inline-block';
         };
 
-        // 匯出Excel功能
+        // 匯出Excel功能（產生真正的 .xlsx 檔案，使用 SheetJS）
         document.getElementById('export-excel-btn').onclick = function() {
           if (!pickSearchData) return;
           const sort_field = document.getElementById('pick-sort-field').value;
           const sort_order = document.getElementById('pick-sort-order').value;
-          
-          // 準備匯出資料
+
+          // 準備匯出資料（保持與之前 CSV 相同的資料排列）
           let exportData = [];
           for (const [db, rows] of Object.entries(pickSearchData)) {
             let sortedRows = sortRows(rows, sort_field, sort_order);
             const dbName = db === 'customer_need' ? '客戶需求表' : 
                           db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表';
-            
-            // 新增分隔行
+
             if (exportData.length > 0) {
               exportData.push({});
             }
             exportData.push({ 'MIC需求起日': dbName });
             exportData.push({});
-            
-            // 新增標題行
+
             exportData.push({
               'MIC需求起日': 'MIC需求起日',
               'MIC需求訖日': 'MIC需求訖日',
+              // 料號 與 版本 合併成單一欄位（版本標示為「版本X」並與料號以三個空白分隔）
               '料號': '料號',
-              '版本': '版本',
               '產品中文名稱': '產品中文名稱',
               '數量': '數量',
               '單價': '單價',
               'PO單號': 'PO單號',
               '庫存': '庫存'
             });
-            
-            // 新增資料行
+
             sortedRows.forEach(row => {
+              // 合併料號與版本：若版本存在則前面加上「版本」字樣，並與料號以三個空白分隔
+              const part料號 = row['料號'] || '';
+              const part版本 = row['版本'] ? ('版本' + row['版本']) : '';
+              const merged料號版本 = part版本 ? (part料號 + '   ' + part版本) : part料號;
+              // 在 PO 單號後面加上：一個空格 + 'Rev.: 00'
+              const poRaw = row['PO單號'] || '';
+              const poWithRev = poRaw ? (poRaw + ' Rev.: 00') : '';
               exportData.push({
                 'MIC需求起日': row['MIC需求起日'] || '',
                 'MIC需求訖日': row['MIC需求訖日'] || '',
-                '料號': row['料號'] || '',
-                '版本': row['版本'] || '',
+                '料號': merged料號版本,
                 '產品中文名稱': row['產品中文名稱'] || '',
                 '數量': row['數量'] || '',
                 '單價': row['單價'] || '',
-                'PO單號': row['PO單號'] || '',
+                'PO單號': poWithRev,
                 '庫存': row['庫存'] || ''
               });
             });
           }
-          
-          // 轉換為CSV格式
-          const fields = ['MIC需求起日', 'MIC需求訖日', '料號', '版本', '產品中文名稱', '數量', '單價', 'PO單號', '庫存'];
-          let csvContent = '\uFEFF'; // BOM for UTF-8
-          csvContent += fields.join(',') + '\n';
-          
+
+          // 欄位順序（已將 版本 與 料號 合併為單一欄位）
+          const fields = ['MIC需求起日', 'MIC需求訖日', '料號', '產品中文名稱', '數量', '單價', 'PO單號', '庫存'];
+
+          // 轉成 AOA（array of arrays）以確保 Excel 中每列位置正確
+          const aoa = [];
           exportData.forEach(row => {
-            const values = fields.map(field => {
-              const value = row[field] || '';
-              return '"' + value.toString().replace(/"/g, '""') + '"';
+            // row 可能是空物件（分隔列）或只有第一欄有值（DB 名稱或單欄標題）
+            const arr = fields.map(f => {
+              return row[f] || '';
             });
-            csvContent += values.join(',') + '\n';
+            // 如果整列都是空字串，推入空陣列以避免出現多個空儲存格
+            const allEmpty = arr.every(v => v === '');
+            aoa.push(allEmpty ? [] : arr);
           });
-          
-          // 下載檔案
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
+
+          // 建立 worksheet 與 workbook
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, '撿貨資訊表');
+
+          // 產生二進位 ArrayBuffer 並建立 Blob 供下載
+          const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([wbout], { type: 'application/octet-stream' });
           const url = URL.createObjectURL(blob);
-          link.setAttribute('href', url);
+          const link = document.createElement('a');
+          link.href = url;
           const today = new Date().toISOString().split('T')[0];
-          link.setAttribute('download', `撿貨資訊表_${today}.csv`);
-          link.style.visibility = 'hidden';
+          link.download = `撿貨資訊表_${today}.xlsx`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          URL.revokeObjectURL(url);
         };
     </script>
   </body>

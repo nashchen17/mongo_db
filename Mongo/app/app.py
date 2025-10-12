@@ -26,6 +26,12 @@ inventory_need_collection = db[INVENTORY_NEED_COLLECTION_NAME]
 CUSTOMER_NEED_COLLECTION_NAME = os.environ.get("CUSTOMER_NEED_COLLECTION_NAME", "customer_need")
 customer_need_collection = db[CUSTOMER_NEED_COLLECTION_NAME]
 
+# Inventory and transactions collections for 進出貨管理
+INVENTORY_COLLECTION_NAME = os.environ.get("INVENTORY_COLLECTION_NAME", "inventory")
+TRANSACTIONS_COLLECTION_NAME = os.environ.get("TRANSACTIONS_COLLECTION_NAME", "transactions")
+inventory_collection = db[INVENTORY_COLLECTION_NAME]
+transactions_collection = db[TRANSACTIONS_COLLECTION_NAME]
+
 
 @app.route("/")
 def index():
@@ -314,6 +320,119 @@ def search_pick():
     # 分組回傳
     result = {"pick": pick_results}
     return jsonify({"ok": True, "data": result})
+
+
+# ---------------------
+# 進出貨管理 API
+# ---------------------
+
+
+@app.route("/api/stock/in", methods=["POST"])
+def stock_in():
+    """Create an inbound (入庫) transaction and update inventory.
+    Expects JSON: { "part_no": str, "qty": number, "unit_price": number (optional), "date": ISO str (optional), "note": str (optional) }
+    """
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"ok": False, "error": "Missing JSON body"}), 400
+    part_no = data.get("part_no") or data.get("料號")
+    try:
+        qty = float(data.get("qty", 0))
+    except Exception:
+        return jsonify({"ok": False, "error": "Invalid qty"}), 400
+    if not part_no or qty <= 0:
+        return jsonify({"ok": False, "error": "part_no required and qty must be > 0"}), 400
+    unit_price = data.get("unit_price")
+    date = data.get("date")
+    note = data.get("note")
+
+    # Insert transaction
+    tx = {
+        "type": "in",
+        "part_no": part_no,
+        "qty": qty,
+        "unit_price": unit_price,
+        "date": date,
+        "note": note
+    }
+    try:
+        transactions_collection.insert_one(tx)
+        # Update inventory (upsert)
+        update = {"$inc": {"stock": qty}}
+        if unit_price is not None:
+            update.setdefault("$set", {})["unit_price"] = unit_price
+        inventory_collection.update_one({"part_no": part_no}, update, upsert=True)
+        return jsonify({"ok": True, "tx": tx})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/stock/out", methods=["POST"])
+def stock_out():
+    """Create an outbound (出庫) transaction and update inventory.
+    Expects JSON: { "part_no": str, "qty": number, "unit_price": number (optional), "date": ISO str (optional), "note": str (optional), "allow_negative": bool (optional) }
+    """
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"ok": False, "error": "Missing JSON body"}), 400
+    part_no = data.get("part_no") or data.get("料號")
+    try:
+        qty = float(data.get("qty", 0))
+    except Exception:
+        return jsonify({"ok": False, "error": "Invalid qty"}), 400
+    if not part_no or qty <= 0:
+        return jsonify({"ok": False, "error": "part_no required and qty must be > 0"}), 400
+    unit_price = data.get("unit_price")
+    date = data.get("date")
+    note = data.get("note")
+    allow_negative = bool(data.get("allow_negative", False))
+
+    # Check inventory
+    current = inventory_collection.find_one({"part_no": part_no}) or {"stock": 0}
+    cur_stock = current.get("stock", 0) or 0
+    if not allow_negative and cur_stock < qty:
+        return jsonify({"ok": False, "error": "Insufficient stock", "stock": cur_stock}), 400
+
+    tx = {
+        "type": "out",
+        "part_no": part_no,
+        "qty": qty,
+        "unit_price": unit_price,
+        "date": date,
+        "note": note
+    }
+    try:
+        transactions_collection.insert_one(tx)
+        inventory_collection.update_one({"part_no": part_no}, {"$inc": {"stock": -qty}}, upsert=True)
+        return jsonify({"ok": True, "tx": tx, "stock_before": cur_stock, "stock_after": cur_stock - qty})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/stock", methods=["GET"])
+def get_stock():
+    """Return current inventory list. Optional query param part_no to filter."""
+    part_no = request.args.get("part_no")
+    query = {}
+    if part_no:
+        query["part_no"] = part_no
+    docs = list(inventory_collection.find(query, {"_id": 0}))
+    return jsonify({"ok": True, "count": len(docs), "items": docs})
+
+
+@app.route("/api/stock/history", methods=["GET"])
+def stock_history():
+    """Return transactions history. Optional filters: part_no, type (in/out), limit"""
+    part_no = request.args.get("part_no")
+    tx_type = request.args.get("type")
+    limit = int(request.args.get("limit", "100"))
+    query = {}
+    if part_no:
+        query["part_no"] = part_no
+    if tx_type in ("in", "out"):
+        query["type"] = tx_type
+    docs = list(transactions_collection.find(query, {"_id": 0}).sort([("date", 1)]).limit(limit))
+    return jsonify({"ok": True, "count": len(docs), "transactions": docs})
 
 
 # Static files (optional)

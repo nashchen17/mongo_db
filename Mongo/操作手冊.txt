@@ -1,0 +1,17 @@
+1.先開啟桌面docker Desktop
+
+2.開啟終端機
+
+3.進入程式內部
+3.1 d:
+3.2 cd \code\Mongo
+3.3 docker compose up -d
+
+4.開啟chrome
+4.1 網址列填上 localhost:5000
+
+
+修改完程式要先
+
+關閉docker: docker compose down
+啟動docker: docker compose up -d

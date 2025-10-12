@@ -85,9 +85,7 @@
           <h3>進出貨管理</h3>
           <div style="display:flex; gap:1rem; flex-direction:column;">
             <div style="display:flex; gap:1rem; align-items:center;">
-              <button id="import-from-pick-btn" style="padding:8px 12px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;">從撿貨資訊匯入出貨</button>
-              <button id="select-all-shipping-btn" style="padding:6px 10px;">全選/反選</button>
-              <button id="clear-shipping-btn" style="padding:6px 10px;">清除列表</button>
+              <!-- buttons removed as requested -->
               <!-- per-row 單據編號 controls shown in table rows; global date/serial removed -->
               <!-- 新增排序與匯出按鈕（與撿貨頁面相同） -->
               <label style="margin-left:1rem;">排序欄位：</label>
@@ -110,7 +108,7 @@
             </div>
             <div id="shipping-list-container" style="overflow-x:auto; margin-top:8px;"></div>
             <div style="display:flex; gap:1rem; align-items:center; margin-top:8px;">
-              <button id="create-shipping-btn" style="padding:8px 12px;background:#28a745;color:#fff;border:none;border-radius:4px;cursor:pointer;">建立出貨</button>
+              <button id="create-shipping-btn" style="padding:8px 12px;background:#28a745;color:#fff;border:none;border-radius:4px;cursor:pointer;">建立出貨單</button>
               <div id="create-shipping-result"></div>
             </div>
           </div>
@@ -315,15 +313,22 @@
             const fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"];
             // 新增頭欄位 "可出貨"
             if (db === 'customer_need') {
+              // show count
+              html += `<div style='margin-bottom:6px;'>共 ${sortedRows.length} 筆</div>`;
               html += `<div style='overflow-x:auto;'><table border='1' cellpadding='4' style='margin-bottom:1rem; min-width:1200px;'><thead><tr>`;
+              // 項次 column
+              html += `<th style='width:60px;'>項次</th>`;
               for (const f of fields) html += `<th style='white-space:nowrap;'>${f}</th>`;
               html += `<th>可出貨</th>`;
               html += '</tr></thead><tbody>';
-              for (const row of sortedRows) {
+              for (let i=0;i<sortedRows.length;i++) {
+                const row = sortedRows[i];
+                const idxDisplay = i+1;
                 // 每列加上 "可出貨" checkbox，data-key 用來識別該列
                 const key = rowKey(row, db);
                 const inShip = shippingItems.some(si => (si.sources || []).some(s => s.key === key));
                 html += '<tr>';
+                html += `<td style="text-align:center;">${idxDisplay}</td>`;
                 for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
                 html += `<td style="text-align:center;"><input type="checkbox" class="pick-add-ship" data-key="${key}" ${inShip ? 'checked' : ''} /> 加入</td>`;
                 html += '</tr>';
@@ -331,14 +336,19 @@
               html += '</tbody></table></div>';
             } else {
               html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表'}</h4>`;
+              html += `<div style='margin-bottom:6px;'>共 ${sortedRows.length} 筆</div>`;
               html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
+              html += `<th style='width:60px;'>項次</th>`;
               for (const f of fields) html += `<th>${f}</th>`;
               html += `<th>可出貨</th>`;
               html += '</tr></thead><tbody>';
-              for (const row of sortedRows) {
+              for (let i=0;i<sortedRows.length;i++) {
+                const row = sortedRows[i];
+                const idxDisplay = i+1;
                 const key = rowKey(row, db);
                 const inShip = shippingItems.some(si => (si.sources || []).some(s => s.key === key));
                 html += '<tr>';
+                html += `<td style="text-align:center;">${idxDisplay}</td>`;
                 for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
                 html += `<td style="text-align:center;"><input type="checkbox" class="pick-add-ship" data-key="${key}" ${inShip ? 'checked' : ''} /> 加入</td>`;
                 html += '</tr>';
@@ -672,11 +682,14 @@
           return 0;
         }
         const sorted = shippingItems.slice().sort((a, b) => compareByField(a, b, sortField, sortOrder));
-        let html = `<table border="1" cellpadding="6" style="min-width:1000px;"><thead><tr>
-          <th>選取</th><th>料號 / 版本</th>
+        let html = `<div style='margin-bottom:6px;'>共 ${sorted.length} 筆</div>`;
+        html += `<table border="1" cellpadding="6" style="min-width:1000px;"><thead><tr>
+          <th>項次</th><th>料號 / 版本</th>
           <th>數量</th><th>單價</th><th>小計</th><th>PO單號</th><th>單據編號</th>
         </tr></thead><tbody>`;
-        for (const it of sorted) {
+        for (let i = 0; i < sorted.length; i++) {
+          const it = sorted[i];
+          const idxDisplay = i + 1;
            const poWithRev = it.po ? (it.po + ' Rev.: 00') : '';
             const qty = Number(it.qty) || 0;
             const unit = Number(it.unit_price) || 0;
@@ -687,7 +700,7 @@
             const serialVal = parts.serial || '01';
             const serialOptionsHtml = buildSerialOptions(serialVal);
             html += `<tr data-id="${it.id}">
-            <td style="text-align:center;"><input type="checkbox" class="ship-select" ${it.selected ? 'checked' : ''}></td>
+            <td style="text-align:center;">${idxDisplay}</td>
             <td style="white-space:nowrap;">${it.merged}</td>
             <td style="text-align:right;">${qty}</td>
             <td style="text-align:right;">${unit}</td>
@@ -702,13 +715,10 @@
          html += '</tbody></table>';
          container.innerHTML = html;
         // 綁定事件（以 data-id 找回 shippingItems 的 index，避免排序後錯位）
-        container.querySelectorAll('tr[data-id]').forEach(tr => {
+        container.querySelectorAll('tr[data-id]').forEach((tr, rowIndex) => {
           const id = Number(tr.getAttribute('data-id'));
           const idx = shippingItems.findIndex(si => si.id === id);
           if (idx < 0) return;
-          const cb = tr.querySelector('.ship-select');
-          if (cb) cb.onchange = function() { shippingItems[idx].selected = this.checked; };
-          // no action column anymore (remove button removed)
           // bind per-row doc date/serial controls to update item.doc_no
           const dateInput = tr.querySelector('.doc-date');
           const serialSel = tr.querySelector('.doc-serial');
@@ -779,6 +789,218 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+      };
+      // 建立出貨：將 shippingItems 依 出貨日期 分組，同一出貨日期的多張單據 append 在同一張工作表
+      document.getElementById('create-shipping-btn').onclick = function() {
+        if (!shippingItems || shippingItems.length === 0) { alert('無出貨資料可建立'); return; }
+        // helper: determine date (yyyy-mm-dd) for an item from doc_no or rawRow
+        function getDateForItem(it) {
+          const docsrc = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
+          let parts = parseDocNoToParts(docsrc || '');
+          let dateVal = parts.dateVal || '';
+          if (!dateVal && it.rawRow && it.rawRow['出貨日期']) {
+            // normalize if present
+            dateVal = String(it.rawRow['出貨日期']).replace(/\//g, '-');
+          }
+          if (!dateVal) dateVal = 'UNKNOWN_DATE';
+          return dateVal;
+        }
+
+        // Group items by dateVal (yyyy-mm-dd)
+        const groupsByDate = {};
+        shippingItems.forEach(it => {
+          const dateVal = getDateForItem(it);
+          if (!groupsByDate[dateVal]) groupsByDate[dateVal] = [];
+          groupsByDate[dateVal].push(it);
+        });
+
+        // For each date group, create one workbook and append all docs into the same sheet
+        Object.entries(groupsByDate).forEach(([dateVal, items]) => {
+          fetch('/static/shipping_template.xlsx').then(r => {
+            if (!r.ok) throw new Error('template not found');
+            return r.arrayBuffer();
+          }).then(ab => {
+            const wb = XLSX.read(ab, { type: 'array' });
+            const sheetName = wb.SheetNames[0];
+            const ws = wb.Sheets[sheetName];
+            const sheetArr = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+            // Write 出貨日期 to G3 in yyyy/mm/dd
+            let outDate = dateVal;
+            if (outDate && outDate.indexOf('-') !== -1) outDate = outDate.replace(/-/g, '/');
+            ws['G3'] = { t: 's', v: outDate };
+
+            // Determine distinct doc nos in this date group
+            const distinctDocs = Array.from(new Set(items.map(it => it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '') ).filter(x=>x)));
+            ws['G4'] = { t: 's', v: (distinctDocs.length === 1 ? distinctDocs[0] : '合併多單據') };
+
+            // Clear F5 (leave header '備註' alone; F5 was requested to be empty when merging)
+            ws['F5'] = { t: 's', v: '' };
+
+            // find header row that contains 'NO.' or 'NO' or '品名'
+            let headerRow = null;
+            for (let r = 0; r < sheetArr.length; r++) {
+              const row = sheetArr[r] || [];
+              if (row.some(c => String(c).trim() === 'NO.' || String(c).trim() === 'NO') || row.some(c => String(c).trim() === '品名')) {
+                headerRow = r;
+                break;
+              }
+            }
+            const startRow = (headerRow !== null) ? (headerRow + 1) + 1 : 6; // next row after header
+
+            // We'll build a new output worksheet by copying template header blocks for each distinct document
+            const templateArr = sheetArr; // rows as arrays
+            const maxCols = Math.max(...templateArr.map(r => (r || []).length), 6);
+            const wsOut = {};
+            let outRow = 0; // zero-based current row in wsOut
+
+            function writeCell(sheet, c, r, value) {
+              if (value === null || value === undefined) return;
+              const cell = { t: (typeof value === 'number' ? 'n' : 's'), v: value };
+              sheet[XLSX.utils.encode_cell({ c: c, r: r })] = cell;
+            }
+
+            // For each distinct document within this date, render its own header block and items
+            const docsByDocNo = {};
+            items.forEach(it => {
+              const docNo = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
+              if (!docsByDocNo[docNo]) docsByDocNo[docNo] = [];
+              docsByDocNo[docNo].push(it);
+            });
+
+            const docEntries = Object.entries(docsByDocNo);
+            docEntries.forEach(([docNo, docItems], docIndex) => {
+              // copy template header rows (0 .. headerRow) into wsOut at outRow
+              for (let r = 0; r <= headerRow; r++) {
+                const row = templateArr[r] || [];
+                for (let c = 0; c < maxCols; c++) {
+                  const v = row[c];
+                  if (v !== undefined) writeCell(wsOut, c, outRow + r, v);
+                }
+              }
+
+              // set block-specific header cells: G3 and G4 relative to this block
+              const g3_r = outRow + 2; // G3 is row index 2 (0-based) within template
+              const g4_r = outRow + 3; // G4 is row index 3
+              const outDateBlock = (dateVal && dateVal.indexOf('-') !== -1) ? dateVal.replace(/-/g,'/') : dateVal;
+              writeCell(wsOut, 6, g3_r, outDateBlock); // G column is index 6
+              writeCell(wsOut, 6, g4_r, docNo || '');
+
+              // write items for this doc
+              let totalQty = 0;
+              let totalAmount = 0;
+              for (let i = 0; i < docItems.length; i++) {
+                const it = docItems[i];
+                const rowIndex = outRow + (startRow - 1) + i; // zero-based
+                const noStr = String(i + 1).padStart(2, '0');
+                const name = it.merged || ((it.part_no || '') + (it.version ? (' 版本' + it.version) : ''));
+                const qty = Number(it.qty) || 0;
+                const unit = Number(it.unit_price) || 0;
+                const subtotal = qty * unit;
+                totalQty += qty;
+                totalAmount += subtotal;
+                writeCell(wsOut, 0, rowIndex, noStr);
+                writeCell(wsOut, 1, rowIndex, name);
+                writeCell(wsOut, 2, rowIndex, qty);
+                writeCell(wsOut, 3, rowIndex, unit);
+                writeCell(wsOut, 4, rowIndex, subtotal);
+                const po = it.po || '';
+                const poWithRev = po ? (po + ' Rev.: 00') : '';
+                // write PO+Rev into the 備註 column (F)
+                writeCell(wsOut, 5, rowIndex, poWithRev);
+              }
+
+              // write totals row for this document block
+              const minRows = 10;
+              const totalRowIndex = outRow + (startRow - 1) + Math.max(docItems.length, minRows) + 1;
+              writeCell(wsOut, 1, totalRowIndex, '合計');
+              writeCell(wsOut, 2, totalRowIndex, totalQty);
+              writeCell(wsOut, 4, totalRowIndex, totalAmount);
+
+              // advance outRow to after this block (leave one empty row)
+              outRow = totalRowIndex + 2;
+            });
+
+            // finalize wsOut range
+            const finalEndRow = outRow + 1;
+            wsOut['!ref'] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: maxCols, r: finalEndRow } });
+
+            // replace sheet with wsOut
+            wb.Sheets[sheetName] = wsOut;
+
+            // Ensure worksheet range (!ref) covers our written area to avoid broken named ranges
+            try {
+              const origRef = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { c:0, r:0 }, e: { c:5, r: totalRowIndex } };
+              const newEndRow = Math.max(origRef.e.r || 0, totalRowIndex);
+              const newEndCol = Math.max(origRef.e.c || 5, 5);
+              ws['!ref'] = XLSX.utils.encode_range({ s: origRef.s || { c:0, r:0 }, e: { c: newEndCol, r: newEndRow } });
+            } catch (e) {
+              // ignore range errors and let SheetJS compute defaults
+              console.warn('failed to update sheet !ref', e);
+            }
+
+            // Clear workbook-level defined names to avoid invalid workbook.xml named range issues
+            try {
+              if (wb && wb.Workbook) wb.Workbook.Names = [];
+            } catch (e) {
+              console.warn('failed to clear workbook names', e);
+            }
+
+            // write back and download (filename includes date)
+            const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const safeDate = String(dateVal).replace(/[^0-9A-Za-z\-]/g,'');
+            link.download = `出貨單_${safeDate}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }).catch(err => {
+            console.warn('template fetch failed, falling back to grouped AOA export', err);
+            // fallback: one AOA per date group
+            const aoa = [];
+            const fields = ['單據編號','料號','版本','數量','單價','小計','PO單號'];
+            aoa.push(fields);
+            let totalQty = 0;
+            let totalAmount = 0;
+            items.forEach(it => {
+              const qty = Number(it.qty) || 0;
+              const unit = Number(it.unit_price) || 0;
+              const subtotal = qty * unit;
+              totalQty += qty;
+              totalAmount += subtotal;
+              const docNo = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
+              aoa.push([
+                docNo,
+                it.merged || it.part_no || '',
+                it.version || '',
+                qty || '',
+                unit || '',
+                subtotal || '',
+                it.po || ''
+              ]);
+            });
+            aoa.push([]);
+            aoa.push(['', '合計', '', totalQty, '', totalAmount, '']);
+            const ws2 = XLSX.utils.aoa_to_sheet(aoa);
+            const wb2 = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb2, ws2, '出貨單');
+            const wbout2 = XLSX.write(wb2, { bookType:'xlsx', type:'array' });
+            const blob2 = new Blob([wbout2], { type: 'application/octet-stream' });
+            const url2 = URL.createObjectURL(blob2);
+            const link2 = document.createElement('a');
+            link2.href = url2;
+            link2.download = `出貨單_${String(dateVal).replace(/[^0-9A-Za-z\-]/g,'')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(link2);
+            link2.click();
+            document.body.removeChild(link2);
+            URL.revokeObjectURL(url2);
+          });
+        });
+        document.getElementById('create-shipping-result').innerText = '已建立出貨檔案';
       };
        // --------------------------------------------------------------
     </script>

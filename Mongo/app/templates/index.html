@@ -49,69 +49,41 @@
         </div>
         <div id="page-inventory" class="card" style="display:none;">
           <h3>庫存管理</h3>
-          <div>
-            <div class="card">
-              <h4>入庫（Stock In）</h4>
-              <form id="stock-in-form">
-                <label>料號: <input type="text" id="in-part-no" required /></label>
-                <label>數量: <input type="number" id="in-qty" step="any" required style="width:120px;"/></label>
-                <label>單價: <input type="number" id="in-unit-price" step="any" style="width:120px;"/></label>
-                <button type="submit">入庫</button>
-              </form>
-              <div id="stock-in-result"></div>
-            </div>
-            <div class="card">
-              <h4>出庫（Stock Out）</h4>
-              <form id="stock-out-form">
-                <label>料號: <input type="text" id="out-part-no" required /></label>
-                <label>數量: <input type="number" id="out-qty" step="any" required style="width:120px;"/></label>
-                <label>允許負庫: <input type="checkbox" id="out-allow-neg" /></label>
-                <button type="submit">出庫</button>
-              </form>
-              <div id="stock-out-result"></div>
-            </div>
-            <div class="card">
-              <h4>查詢庫存</h4>
-              <form id="stock-query-form" style="display:flex; gap:8px; align-items:center;">
-                <label>料號: <input type="text" id="query-part-no" /></label>
-                <button type="submit">查詢</button>
-                <button type="button" id="query-all-btn">顯示全部</button>
-              </form>
-              <div id="stock-query-result"></div>
-            </div>
+          
+          <!-- 入庫表單 -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <h4>入庫（Stock In）</h4>
+            <form id="stock-in-form" style="display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center; max-width: 500px;">
+              
+              <label for="product-series">料號系列：</label>
+              <select id="product-series" name="series" required style="padding: 8px;">
+                <option value="">請選擇料號系列</option>
+              </select>
+              
+              <label for="product-number">料號：</label>
+              <select id="product-number" name="number" required style="padding: 8px;">
+                <option value="">請先選擇料號系列</option>
+              </select>
+              
+              <label for="product-name">產品中文名稱：</label>
+              <input type="text" id="product-name" name="name" readonly style="padding: 8px; background-color: #f5f5f5;">
+              
+              <label for="stock-quantity">數量：</label>
+              <input type="number" id="stock-quantity" name="quantity" required min="0" step="1" style="padding: 8px;">
+              
+              <label for="stock-price">單價：</label>
+              <input type="number" id="stock-price" name="price" step="0.01" min="0" style="padding: 8px;">
+              
+              <div></div>
+              <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 1rem;">入庫</button>
+            </form>
+            <div id="stock-in-result" style="margin-top: 1rem;"></div>
           </div>
+          
         </div>
         <div id="page-shipping" class="card" style="display:none;">
           <h3>進出貨管理</h3>
-          <div style="display:flex; gap:1rem; flex-direction:column;">
-            <div style="display:flex; gap:1rem; align-items:center;">
-              <!-- buttons removed as requested -->
-              <!-- per-row 單據編號 controls shown in table rows; global date/serial removed -->
-              <!-- 新增排序與匯出按鈕（與撿貨頁面相同） -->
-              <label style="margin-left:1rem;">排序欄位：</label>
-              <select id="shipping-sort-field" style="width:160px; height:34px;">
-                <option value="MIC需求起日">MIC需求起日</option>
-                <option value="MIC需求訖日">MIC需求訖日</option>
-                <option value="料號">料號</option>
-                <option value="版本">版本</option>
-                <option value="產品中文名稱">產品中文名稱</option>
-                <option value="數量">數量</option>
-                <option value="單價">單價</option>
-                <option value="PO單號">PO單號</option>
-                <option value="庫存">庫存</option>
-              </select>
-              <select id="shipping-sort-order" style="width:80px; height:34px;">
-                <option value="asc">升冪</option>
-                <option value="desc">降冪</option>
-              </select>
-              <button id="shipping-export-excel-btn" style="background-color: #28a745; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; margin-left:8px; height:34px; line-height:1;">匯出Excel</button>
-            </div>
-            <div id="shipping-list-container" style="overflow-x:auto; margin-top:8px;"></div>
-            <div style="display:flex; gap:1rem; align-items:center; margin-top:8px;">
-              <button id="create-shipping-btn" style="padding:8px 12px;background:#28a745;color:#fff;border:none;border-radius:4px;cursor:pointer;">建立出貨單</button>
-              <div id="create-shipping-result"></div>
-            </div>
-          </div>
+          <div>（此頁面暫時空白，可自訂內容）</div>
         </div>
         <div id="page-material" class="card" style="display:none;">
           <h3>物料資訊管理</h3>
@@ -125,7 +97,7 @@
               <input type="date" id="pick-mic-start" name="mic_start" required style="width:160px; height:34px;" />
               <span style="font-size:1.2em; line-height:1;">～</span>
               <input type="date" id="pick-mic-end" name="mic_end" required style="width:160px; height:34px;" />
-              <button id="pick-search-btn" type="submit" style="margin-left:1rem; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; height:34px; line-height:1;">搜尋</button>
+              <button type="submit" style="margin-left:1rem; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; height:34px; line-height:1;">搜尋</button>
             </div>
             <div style="display:flex; gap:1rem; align-items:center; width:100%;">
               <label for="pick-sort-field" style="margin-bottom:0; min-width:80px; line-height:1;">排序欄位：</label>
@@ -145,15 +117,13 @@
                 <option value="desc">降冪</option>
               </select>
               <button id="export-excel-btn" style="background-color: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; display: none; margin-left: 2rem; height:34px; line-height:1;">匯出Excel</button>
-              <button id="pick-select-all-btn" style="background-color:#007bff;color:white;padding:8px 16px;border:none;border-radius:4px;cursor:pointer;margin-left:8px;height:34px;line-height:1;">全選/反選</button>
             </div>
           </form>
           <div id="pick-search-result"></div>
         </div>
       </div>
-  </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script>
+    </div>
+    <script>
       // 分頁切換
       function showPage(pageId) {
         document.getElementById('page-home').style.display = 'none';
@@ -181,74 +151,6 @@
       document.getElementById('nav-pick').onclick = function(){showPage('page-pick');};
       // 預設顯示首頁
       showPage('page-home');
-      // Global document-date and document-serial removed; per-row controls used.
-      // parse a docNo like 20251012-01 into {dateVal: 'yyyy-mm-dd', serial: '01'}
-      function parseDocNoToParts(docNo) {
-        const defaultDate = '';
-        const defaultSerial = '01';
-        if (!docNo) return { dateVal: defaultDate, serial: defaultSerial };
-        const m = String(docNo).match(/^(\d{8})-(\d{2})$/);
-        if (!m) return { dateVal: defaultDate, serial: defaultSerial };
-        const yyyymmdd = m[1];
-        const yyyy = yyyymmdd.slice(0,4);
-        const mm = yyyymmdd.slice(4,6);
-        const dd = yyyymmdd.slice(6,8);
-        return { dateVal: `${yyyy}-${mm}-${dd}`, serial: m[2] };
-      }
-      // build serial <option> list (01..20) with an optional selected value
-      function buildSerialOptions(selected) {
-        let s = '';
-        for (let i=1;i<=20;i++) {
-          const v = String(i).padStart(2,'0');
-          s += `<option value="${v}" ${v===selected ? 'selected' : ''}>${v}</option>`;
-        }
-        return s;
-      }
-  // per-row controls drive shipping table re-rendering; global date/serial controls were removed
-      // 進出貨管理前端 JS
-      document.getElementById('stock-in-form').onsubmit = async function(e) {
-        e.preventDefault();
-        const part_no = document.getElementById('in-part-no').value.trim();
-        const qty = document.getElementById('in-qty').value;
-        const unit_price = document.getElementById('in-unit-price').value;
-        const payload = { part_no, qty: Number(qty), unit_price: unit_price ? Number(unit_price) : undefined };
-        const res = await fetch('/api/stock/in', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        const data = await res.json();
-        document.getElementById('stock-in-result').innerText = data.ok ? `入庫成功: ${JSON.stringify(data.tx)}` : `錯誤: ${data.error}`;
-      };
-
-      document.getElementById('stock-out-form').onsubmit = async function(e) {
-        e.preventDefault();
-        const part_no = document.getElementById('out-part-no').value.trim();
-        const qty = document.getElementById('out-qty').value;
-        const allow_negative = document.getElementById('out-allow-neg').checked;
-        const payload = { part_no, qty: Number(qty), allow_negative };
-        const res = await fetch('/api/stock/out', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        const data = await res.json();
-        document.getElementById('stock-out-result').innerText = data.ok ? `出庫成功: 庫存更新 ${data.stock_before} -> ${data.stock_after}` : `錯誤: ${data.error}`;
-      };
-
-      async function queryStock(part_no) {
-        const url = part_no ? `/api/stock?part_no=${encodeURIComponent(part_no)}` : `/api/stock`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const div = document.getElementById('stock-query-result');
-        if (!data.ok) { div.innerText = `錯誤: ${data.error}`; return; }
-        if (data.count === 0) { div.innerText = '查無資料'; return; }
-        let html = `<table border='1' cellpadding='4'><thead><tr><th>料號</th><th>庫存</th><th>單價</th></tr></thead><tbody>`;
-        data.items.forEach(it => {
-          html += `<tr><td>${it.part_no}</td><td>${it.stock ?? 0}</td><td>${it.unit_price ?? ''}</td></tr>`;
-        });
-        html += `</tbody></table>`;
-        div.innerHTML = html;
-      }
-
-      document.getElementById('stock-query-form').onsubmit = function(e) {
-        e.preventDefault();
-        const part_no = document.getElementById('query-part-no').value.trim();
-        queryStock(part_no || undefined);
-      };
-      document.getElementById('query-all-btn').onclick = function() { queryStock(); };
       // 匯入功能
       document.getElementById('upload-purchase-shipping-form').onsubmit = async function(e) {
         e.preventDefault();
@@ -311,80 +213,57 @@
           for (const [db, rows] of Object.entries(data)) {
             let sortedRows = sortRows(rows, sort_field, sort_order);
             const fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"];
-            // 新增頭欄位 "可出貨"
             if (db === 'customer_need') {
-              // show count
-              html += `<div style='margin-bottom:6px;'>共 ${sortedRows.length} 筆</div>`;
+              html += `<div style='display:flex; align-items:center; justify-content:space-between;'>`;
+              html += `<h4 style='margin:0;'>客戶需求表</h4>`;
+              html += `<div style='display:flex; gap:0.5rem; align-items:center;'>
+                <select id='pick-sort-field-inline' style='width:120px;'>
+                  <option value='MIC需求起日'>MIC需求起日</option>
+                  <option value='MIC需求訖日'>MIC需求訖日</option>
+                  <option value='料號'>料號</option>
+                  <option value='版本'>版本</option>
+                  <option value='產品中文名稱'>產品中文名稱</option>
+                  <option value='數量'>數量</option>
+                  <option value='單價'>單價</option>
+                  <option value='PO單號'>PO單號</option>
+                  <option value='庫存'>庫存</option>
+                </select>
+                <select id='pick-sort-order-inline' style='width:80px;'>
+                  <option value='asc'>升冪</option>
+                  <option value='desc'>降冪</option>
+                </select>
+                <span>排序欄位</span>
+                <button id='pick-search-btn-inline' style='margin-left:1rem;'>搜尋</button>
+              </div></div>`;
+            }
+            if (sortedRows.length === 0) {
+              html += '<div>查無資料</div>';
+              continue;
+            }
+            if (db === 'customer_need') {
               html += `<div style='overflow-x:auto;'><table border='1' cellpadding='4' style='margin-bottom:1rem; min-width:1200px;'><thead><tr>`;
-              // 項次 column
-              html += `<th style='width:60px;'>項次</th>`;
               for (const f of fields) html += `<th style='white-space:nowrap;'>${f}</th>`;
-              html += `<th>可出貨</th>`;
               html += '</tr></thead><tbody>';
-              for (let i=0;i<sortedRows.length;i++) {
-                const row = sortedRows[i];
-                const idxDisplay = i+1;
-                // 每列加上 "可出貨" checkbox，data-key 用來識別該列
-                const key = rowKey(row, db);
-                const inShip = shippingItems.some(si => (si.sources || []).some(s => s.key === key));
+              for (const row of sortedRows) {
                 html += '<tr>';
-                html += `<td style="text-align:center;">${idxDisplay}</td>`;
                 for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
-                html += `<td style="text-align:center;"><input type="checkbox" class="pick-add-ship" data-key="${key}" ${inShip ? 'checked' : ''} /> 加入</td>`;
                 html += '</tr>';
               }
               html += '</tbody></table></div>';
             } else {
               html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表'}</h4>`;
-              html += `<div style='margin-bottom:6px;'>共 ${sortedRows.length} 筆</div>`;
               html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
-              html += `<th style='width:60px;'>項次</th>`;
               for (const f of fields) html += `<th>${f}</th>`;
-              html += `<th>可出貨</th>`;
               html += '</tr></thead><tbody>';
-              for (let i=0;i<sortedRows.length;i++) {
-                const row = sortedRows[i];
-                const idxDisplay = i+1;
-                const key = rowKey(row, db);
-                const inShip = shippingItems.some(si => (si.sources || []).some(s => s.key === key));
+              for (const row of sortedRows) {
                 html += '<tr>';
-                html += `<td style="text-align:center;">${idxDisplay}</td>`;
                 for (const f of fields) html += `<td>${row[f] ?? ''}</td>`;
-                html += `<td style="text-align:center;"><input type="checkbox" class="pick-add-ship" data-key="${key}" ${inShip ? 'checked' : ''} /> 加入</td>`;
                 html += '</tr>';
               }
               html += '</tbody></table>';
             }
           }
           resultDiv.innerHTML = html;
-          // 綁定每列的「可出貨」checkbox（加入/移除出貨清單）
-          resultDiv.querySelectorAll('.pick-add-ship').forEach(cb => {
-            cb.onchange = function() {
-              const key = this.getAttribute('data-key');
-              if (this.checked) {
-                addPickRowToShipping(key);
-              } else {
-                removePickRowFromShipping(key);
-              }
-            };
-          });
-          // 全選/反選 按鈕行為：切換所有 pick-add-ship 的勾選並觸發 onchange
-          const pickSelectAllBtn = document.getElementById('pick-select-all-btn');
-          if (pickSelectAllBtn) {
-            pickSelectAllBtn.onclick = function() {
-              const checkboxes = Array.from(resultDiv.querySelectorAll('.pick-add-ship'));
-              if (checkboxes.length === 0) return;
-              // 若至少存在一個未勾選，則勾選全部；否則取消勾選全部
-              const anyUnchecked = checkboxes.some(cb => !cb.checked);
-              checkboxes.forEach(cb => {
-                if (cb.checked !== anyUnchecked) {
-                  cb.checked = anyUnchecked;
-                  // 直接呼叫 onchange handler（若有）以同步 shippingItems
-                  if (typeof cb.onchange === 'function') cb.onchange();
-                }
-              });
-            };
-          }
           // 排序欄位 inline 控制
           const sortFieldInline = document.getElementById('pick-sort-field-inline');
           const sortOrderInline = document.getElementById('pick-sort-order-inline');
@@ -406,102 +285,6 @@
             };
           }
         }
-        // 產生每列的唯一 key（用於識別與加入/移除）
-        function rowKey(row, db) {
-          return `${db}|${row['MIC需求起日']||''}|${row['料號']||''}|${row['版本']||''}|${row['PO單號']||''}`;
-        }
-        // 從 pickSearchData 找回 row 物件
-        function findRowByKey(key) {
-          for (const [db, rows] of Object.entries(pickSearchData || {})) {
-            for (const r of rows) {
-              if (rowKey(r, db) === key) return { db, row: r };
-            }
-          }
-          return null;
-        }
-        // 產生聚合 key（以 料號 + PO 單號 為主）
-        function aggrKeyFromRow(row) {
-          return `${row['料號']||''}|${row['PO單號']||''}`;
-        }
-
-        // 加入單一 pick 列到 shippingItems（若同一料號+PO 已存在，則加總；同時記錄來源 row key）
-        function addPickRowToShipping(key) {
-          if (!pickSearchData) return;
-          const found = findRowByKey(key);
-          if (!found) return;
-          const r = found.row;
-          const qty = Number(r['數量'] || 0);
-          const merged = mergePartVersion(r);
-          const aggr = aggrKeyFromRow(r);
-
-          // 若已存在相同聚合 key，則累加數量並記錄來源
-          const existIdx = shippingItems.findIndex(si => si.aggrKey === aggr);
-          if (existIdx >= 0) {
-            const si = shippingItems[existIdx];
-            si.qty = (Number(si.qty) || 0) + qty;
-            si.ship_qty = (Number(si.ship_qty) || 0) + qty;
-            // stamp current composed document number into the aggregated item
-            // prefer existing si.doc_no or rawRow's 單據編號; do not rely on global composed value
-            si.doc_no = si.doc_no || (r['單據編號'] || '');
-            // 優先保留已有的 product/unit_price/stock，若不存在則採用新 row 的值
-            if (!si.product) si.product = r['產品中文名稱'] || '';
-            if (!si.unit_price) si.unit_price = r['單價'] || '';
-            if (!si.stock) si.stock = r['庫存'] || '';
-            // 記錄來源 key（避免重複加入同一來源）
-            si.sources = si.sources || [];
-            if (!si.sources.some(s => s.key === key)) si.sources.push({ key, qty });
-          } else {
-            // 新增聚合項目
-            const newItem = {
-              id: (shippingItems.length ? Math.max(...shippingItems.map(s => s.id)) + 1 : 1),
-              db: found.db,
-              rawRow: r,
-              part_no: r['料號'] || '',
-              version: r['版本'] || '',
-              merged,
-              product: r['產品中文名稱'] || '',
-              qty: qty,
-              unit_price: r['單價'] || '',
-              po: r['PO單號'] || '',
-              stock: r['庫存'] || '',
-              ship_qty: qty,
-              selected: true,
-              // stamp per-item doc_no from source row if present
-              doc_no: (r['單據編號'] || ''),
-              aggrKey: aggr,
-              sources: [{ key, qty }]
-            };
-            shippingItems.push(newItem);
-          }
-          renderShippingTable();
-        }
-        // 從 shippingItems 移除對應 pick row 的貢獻（以來源 key 為準），若該 shipping 項目 no sources 則移除整筆；
-        // 同時在 pick 表格取消對應 checkbox（若仍在畫面上）
-        function removePickRowFromShipping(key) {
-          // 找出包含此來源 key 的 shipping item
-          const idx = shippingItems.findIndex(si => (si.sources || []).some(s => s.key === key));
-          if (idx >= 0) {
-            const si = shippingItems[idx];
-            // 找回來源並扣除數量
-            const srcIdx = si.sources.findIndex(s => s.key === key);
-            if (srcIdx >= 0) {
-              const src = si.sources[srcIdx];
-              const qty = Number(src.qty) || 0;
-              si.qty = (Number(si.qty) || 0) - qty;
-              si.ship_qty = (Number(si.ship_qty) || 0) - qty;
-              // 移除該來源
-              si.sources.splice(srcIdx, 1);
-            }
-            // 若沒有來源或數量 <= 0，移除整筆 shipping item
-            if (!si.sources || si.sources.length === 0 || (Number(si.qty) || 0) <= 0) {
-              shippingItems.splice(idx, 1);
-            }
-          }
-          renderShippingTable();
-          // 若 pick 表格仍在畫面上，取消對應 checkbox
-          const cb = document.querySelector(`.pick-add-ship[data-key="${key}"]`);
-          if (cb) cb.checked = false;
-        }
         // 主排序欄位監聽
         document.getElementById('pick-sort-field').onchange = function() {
           if (pickSearchData) {
@@ -513,496 +296,258 @@
             renderPickTable(pickSearchData, document.getElementById('pick-sort-field').value, this.value);
           }
         };
-        async function performPickSearch(e) {
-          console.log('performPickSearch start', e);
-          try { if (e && typeof e.preventDefault === 'function') e.preventDefault(); } catch(err) {}
+        document.getElementById('pick-search-form').onsubmit = async function(e) {
+          e.preventDefault();
+          const mic_start = document.getElementById('pick-mic-start').value;
+          const mic_end = document.getElementById('pick-mic-end').value;
+          const sort_field = document.getElementById('pick-sort-field').value;
+          const sort_order = document.getElementById('pick-sort-order').value;
           const resultDiv = document.getElementById('pick-search-result');
-          try {
-            const mic_start = document.getElementById('pick-mic-start').value;
-            const mic_end = document.getElementById('pick-mic-end').value;
-            const sort_field = document.getElementById('pick-sort-field').value;
-            const sort_order = document.getElementById('pick-sort-order').value;
-            resultDiv.innerHTML = '';
-            const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}`);
-            const data = await res.json();
-            if (!data.ok) {
-              resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
-              pickSearchData = null;
-            } else {
-              pickSearchData = data.data;
-              renderPickTable(pickSearchData, sort_field, sort_order);
-              document.getElementById('export-excel-btn').style.display = 'inline-block';
-            }
-          } catch (ex) {
-            console.error('pick search failed', ex);
-            if (resultDiv) resultDiv.innerHTML = `<span style='color:red;'>執行錯誤: ${ex && ex.message ? ex.message : String(ex)}</span>`;
+          resultDiv.innerHTML = '';
+          const res = await fetch(`/api/search_pick?mic_start=${encodeURIComponent(mic_start)}&mic_end=${encodeURIComponent(mic_end)}`);
+          const data = await res.json();
+          if (!data.ok) {
+            resultDiv.innerHTML = `<span style='color:red;'>錯誤：${data.error}</span>`;
+            pickSearchData = null;
+            return;
           }
-          try { showPage('page-pick'); } catch(e) {}
-          console.log('performPickSearch end');
-        }
-        document.getElementById('pick-search-form').onsubmit = performPickSearch;
-        const pickSearchBtn = document.getElementById('pick-search-btn');
-        if (pickSearchBtn) pickSearchBtn.onclick = performPickSearch;
+          pickSearchData = data.data;
+          renderPickTable(pickSearchData, sort_field, sort_order);
+          // 顯示匯出按鈕
+          document.getElementById('export-excel-btn').style.display = 'inline-block';
+        };
 
-        // 匯出Excel功能（產生真正的 .xlsx 檔案，使用 SheetJS）
+        // 匯出Excel功能
         document.getElementById('export-excel-btn').onclick = function() {
           if (!pickSearchData) return;
           const sort_field = document.getElementById('pick-sort-field').value;
           const sort_order = document.getElementById('pick-sort-order').value;
-
-          // 準備匯出資料（保持與之前 CSV 相同的資料排列）
+          
+          // 準備匯出資料
           let exportData = [];
           for (const [db, rows] of Object.entries(pickSearchData)) {
             let sortedRows = sortRows(rows, sort_field, sort_order);
             const dbName = db === 'customer_need' ? '客戶需求表' : 
                           db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表';
-
+            
+            // 新增分隔行
             if (exportData.length > 0) {
               exportData.push({});
             }
             exportData.push({ 'MIC需求起日': dbName });
             exportData.push({});
-
+            
+            // 新增標題行
             exportData.push({
               'MIC需求起日': 'MIC需求起日',
               'MIC需求訖日': 'MIC需求訖日',
-              // 料號 與 版本 合併成單一欄位（版本標示為「版本X」並與料號以三個空格分隔）
               '料號': '料號',
+              '版本': '版本',
               '產品中文名稱': '產品中文名稱',
               '數量': '數量',
               '單價': '單價',
               'PO單號': 'PO單號',
               '庫存': '庫存'
             });
-
+            
+            // 新增資料行
             sortedRows.forEach(row => {
-              // 合併料號與版本：若版本存在則前面加上「版本」字樣，並與料號以三個空格分隔
-              const part料號 = row['料號'] || '';
-              const part版本 = row['版本'] ? ('版本' + row['版本']) : '';
-              const merged料號版本 = part版本 ? (part料號 + '   ' + part版本) : part料號;
-              // 在 PO 單號後面加上：一個空格 + 'Rev.: 00'
-              const poRaw = row['PO單號'] || '';
-              const poWithRev = poRaw ? (poRaw + ' Rev.: 00') : '';
               exportData.push({
                 'MIC需求起日': row['MIC需求起日'] || '',
                 'MIC需求訖日': row['MIC需求訖日'] || '',
-                '料號': merged料號版本,
+                '料號': row['料號'] || '',
+                '版本': row['版本'] || '',
                 '產品中文名稱': row['產品中文名稱'] || '',
                 '數量': row['數量'] || '',
                 '單價': row['單價'] || '',
-                'PO單號': poWithRev,
+                'PO單號': row['PO單號'] || '',
                 '庫存': row['庫存'] || ''
               });
             });
           }
-
-          // 欄位順序（已將 版本 與 料號 合併為單一欄位）
-          const fields = ['MIC需求起日', 'MIC需求訖日', '料號', '產品中文名稱', '數量', '單價', 'PO單號', '庫存'];
-
-          // 轉成 AOA（array of arrays）以確保 Excel 中每列位置正確
-          const aoa = [];
+          
+          // 轉換為CSV格式
+          const fields = ['MIC需求起日', 'MIC需求訖日', '料號', '版本', '產品中文名稱', '數量', '單價', 'PO單號', '庫存'];
+          let csvContent = '\uFEFF'; // BOM for UTF-8
+          csvContent += fields.join(',') + '\n';
+          
           exportData.forEach(row => {
-            // row 可能是空物件（分隔列）或只有第一欄有值（DB 名稱或單欄標題）
-            const arr = fields.map(f => {
-              return row[f] || '';
+            const values = fields.map(field => {
+              const value = row[field] || '';
+              return '"' + value.toString().replace(/"/g, '""') + '"';
             });
-            // 如果整列都是空字串，推入空陣列以避免出現多個空儲存格
-            const allEmpty = arr.every(v => v === '');
-            aoa.push(allEmpty ? [] : arr);
+            csvContent += values.join(',') + '\n';
           });
-
-          // 建立 worksheet 與 workbook
-          const ws = XLSX.utils.aoa_to_sheet(aoa);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, '撿貨資訊表');
-
-          // 產生二進位 ArrayBuffer 並建立 Blob 供下載
-          const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-          const blob = new Blob([wbout], { type: 'application/octet-stream' });
-          const url = URL.createObjectURL(blob);
+          
+          // 下載檔案
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
           const link = document.createElement('a');
-          link.href = url;
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
           const today = new Date().toISOString().split('T')[0];
-          link.download = `撿貨資訊表_${today}.xlsx`;
+          link.setAttribute('download', `撿貨資訊表_${today}.csv`);
+          link.style.visibility = 'hidden';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          URL.revokeObjectURL(url);
         };
-       // --- 進出貨管理前端：從撿貨資訊匯入並建立出貨 --------------------
-       // 物流資料來源為全域變數 pickSearchData（由撿貨搜尋產生）
-       let shippingItems = []; // {id, db, rawRow, part_no, version, merged, product, qty, unit_price, po, stock, ship_qty, selected}
-
-       function resetShippingList() {
-         shippingItems = [];
-         renderShippingTable();
-         document.getElementById('create-shipping-result').innerText = '';
-       }
-
-       function mergePartVersion(row) {
-         const part = row['料號'] || '';
-         const ver = row['版本'] ? ('版本' + row['版本']) : '';
-         return ver ? (part + '   ' + ver) : part;
-       }
-
-       function importPickToShipping() {
-         if (!pickSearchData) {
-           alert('請先至「撿貨資訊表」依需求搜尋並取得資料，然後再匯入。');
-           return;
-         }
-         // 先清空，再逐筆以 addPickRowToShipping 處理，確保會做聚合
-         shippingItems = [];
-         for (const [db, rows] of Object.entries(pickSearchData)) {
-           for (const r of rows) {
-             const key = rowKey(r, db);
-             addPickRowToShipping(key);
-           }
-         }
-         renderShippingTable();
-       }
-
-       function renderShippingTable() {
-         const container = document.getElementById('shipping-list-container');
-         if (!shippingItems || shippingItems.length === 0) {
-           container.innerHTML = '<div>尚無出貨項目，請點「從撿貨資訊匯入出貨」。</div>';
-           return;
-         }
-        // 以使用者選擇的排序欄位排序並顯示
-        const sortField = document.getElementById('shipping-sort-field') ? document.getElementById('shipping-sort-field').value : 'MIC需求起日';
-        const sortOrder = document.getElementById('shipping-sort-order') ? document.getElementById('shipping-sort-order').value : 'asc';
-        function compareByField(a, b, field, order) {
-          let va = a.rawRow[field] ?? '';
-          let vb = b.rawRow[field] ?? '';
-          const numericFields = ["數量", "單價", "版本", "庫存"];
-          if (numericFields.includes(field)) { va = Number(va) || 0; vb = Number(vb) || 0; }
-          else if (field.includes("日")) { va = va ? new Date(va) : new Date(0); vb = vb ? new Date(vb) : new Date(0); }
-          else { va = va ? va.toString() : ''; vb = vb ? vb.toString() : ''; }
-          if (va < vb) return order === 'asc' ? -1 : 1;
-          if (va > vb) return order === 'asc' ? 1 : -1;
-          return 0;
-        }
-        const sorted = shippingItems.slice().sort((a, b) => compareByField(a, b, sortField, sortOrder));
-        let html = `<div style='margin-bottom:6px;'>共 ${sorted.length} 筆</div>`;
-        html += `<table border="1" cellpadding="6" style="min-width:1000px;"><thead><tr>
-          <th>項次</th><th>料號 / 版本</th>
-          <th>數量</th><th>單價</th><th>小計</th><th>PO單號</th><th>單據編號</th>
-        </tr></thead><tbody>`;
-        for (let i = 0; i < sorted.length; i++) {
-          const it = sorted[i];
-          const idxDisplay = i + 1;
-           const poWithRev = it.po ? (it.po + ' Rev.: 00') : '';
-            const qty = Number(it.qty) || 0;
-            const unit = Number(it.unit_price) || 0;
-            const subtotal = qty * unit;
-            // determine per-row date/serial defaults
-            const parts = parseDocNoToParts(it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : ''));
-            const dateVal = parts.dateVal || '';
-            const serialVal = parts.serial || '01';
-            const serialOptionsHtml = buildSerialOptions(serialVal);
-            html += `<tr data-id="${it.id}">
-            <td style="text-align:center;">${idxDisplay}</td>
-            <td style="white-space:nowrap;">${it.merged}</td>
-            <td style="text-align:right;">${qty}</td>
-            <td style="text-align:right;">${unit}</td>
-            <td style="text-align:right;">${subtotal}</td>
-            <td>${poWithRev}</td>
-            <td style="white-space:nowrap;">
-              <input type="date" class="doc-date" value="${dateVal}" style="width:120px;" />
-              <select class="doc-serial">${serialOptionsHtml}</select>
-            </td>
-          </tr>`;
-         }
-         html += '</tbody></table>';
-         container.innerHTML = html;
-        // 綁定事件（以 data-id 找回 shippingItems 的 index，避免排序後錯位）
-        container.querySelectorAll('tr[data-id]').forEach((tr, rowIndex) => {
-          const id = Number(tr.getAttribute('data-id'));
-          const idx = shippingItems.findIndex(si => si.id === id);
-          if (idx < 0) return;
-          // bind per-row doc date/serial controls to update item.doc_no
-          const dateInput = tr.querySelector('.doc-date');
-          const serialSel = tr.querySelector('.doc-serial');
-          function updateItemDocNo() {
-            const dv = dateInput ? dateInput.value.replace(/-/g,'') : '';
-            const sv = serialSel ? serialSel.value : '';
-            if (dv && sv) shippingItems[idx].doc_no = `${dv}-${sv}`;
-            else shippingItems[idx].doc_no = '';
-          }
-          if (dateInput) dateInput.onchange = updateItemDocNo;
-          if (serialSel) serialSel.onchange = updateItemDocNo;
-        });
-       }
-      // 當使用者改變進出貨頁的排序時重繪
-      document.getElementById('shipping-sort-field').onchange = function() { renderShippingTable(); };
-      document.getElementById('shipping-sort-order').onchange = function() { renderShippingTable(); };
-
-      // 進出貨頁匯出 Excel（只匯出目前 shippingItems，順序照頁面排序）
-      document.getElementById('shipping-export-excel-btn').onclick = function() {
-        if (!shippingItems || shippingItems.length === 0) { alert('無可匯出的出貨項目'); return; }
-        const sortField = document.getElementById('shipping-sort-field').value;
-        const sortOrder = document.getElementById('shipping-sort-order').value;
-        // 先排序
-        function cmp(a,b) {
-          let va = a.rawRow[sortField] ?? '';
-          let vb = b.rawRow[sortField] ?? '';
-          const numericFields = ["數量", "單價", "版本", "庫存"];
-          if (numericFields.includes(sortField)) { va = Number(va)||0; vb = Number(vb)||0; }
-          else if (sortField.includes("日")) { va = va ? new Date(va) : new Date(0); vb = vb ? new Date(vb) : new Date(0); }
-          else { va = va ? va.toString() : ''; vb = vb ? vb.toString() : ''; }
-          if (va < vb) return sortOrder === 'asc' ? -1 : 1;
-          if (va > vb) return sortOrder === 'asc' ? 1 : -1;
-          return 0;
-        }
-        const sorted = shippingItems.slice().sort(cmp);
-        // 準備 AOA (目前出貨欄位：料號, 數量, 單價, 小計, PO單號, 單據編號)
-        const fields = ['料號','數量','單價','小計','PO單號','單據編號'];
-        const aoa = [];
-        // 標題列
-        aoa.push(fields);
-        // 各列
-        sorted.forEach(it => {
-          const merged = it.merged || '';
-          const poWithRev = it.po ? (it.po + ' Rev.: 00') : '';
-          const qty = Number(it.qty) || 0;
-          const unit = Number(it.unit_price) || 0;
-          const subtotal = qty * unit;
-          const docNo = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
-          aoa.push([
-            merged,
-            qty || '',
-            unit || '',
-            subtotal || '',
-            poWithRev,
-            docNo
-          ]);
-        });
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '出貨清單');
-        const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
-        const blob = new Blob([wbout], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `出貨清單_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      };
-      // 建立出貨：將 shippingItems 依 出貨日期 分組，同一出貨日期的多張單據 append 在同一張工作表
-      document.getElementById('create-shipping-btn').onclick = function() {
-        if (!shippingItems || shippingItems.length === 0) { alert('無出貨資料可建立'); return; }
-        // helper: determine date (yyyy-mm-dd) for an item from doc_no or rawRow
-        function getDateForItem(it) {
-          const docsrc = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
-          let parts = parseDocNoToParts(docsrc || '');
-          let dateVal = parts.dateVal || '';
-          if (!dateVal && it.rawRow && it.rawRow['出貨日期']) {
-            // normalize if present
-            dateVal = String(it.rawRow['出貨日期']).replace(/\//g, '-');
-          }
-          if (!dateVal) dateVal = 'UNKNOWN_DATE';
-          return dateVal;
-        }
-
-        // Group items by dateVal (yyyy-mm-dd)
-        const groupsByDate = {};
-        shippingItems.forEach(it => {
-          const dateVal = getDateForItem(it);
-          if (!groupsByDate[dateVal]) groupsByDate[dateVal] = [];
-          groupsByDate[dateVal].push(it);
-        });
-
-        // For each date group, create one workbook and append all docs into the same sheet
-        Object.entries(groupsByDate).forEach(([dateVal, items]) => {
-          fetch('/static/shipping_template.xlsx').then(r => {
-            if (!r.ok) throw new Error('template not found');
-            return r.arrayBuffer();
-          }).then(ab => {
-            const wb = XLSX.read(ab, { type: 'array' });
-            const sheetName = wb.SheetNames[0];
-            const ws = wb.Sheets[sheetName];
-            const sheetArr = XLSX.utils.sheet_to_json(ws, { header: 1 });
-
-            // Write 出貨日期 to G3 in yyyy/mm/dd
-            let outDate = dateVal;
-            if (outDate && outDate.indexOf('-') !== -1) outDate = outDate.replace(/-/g, '/');
-            ws['G3'] = { t: 's', v: outDate };
-
-            // Determine distinct doc nos in this date group
-            const distinctDocs = Array.from(new Set(items.map(it => it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '') ).filter(x=>x)));
-            ws['G4'] = { t: 's', v: (distinctDocs.length === 1 ? distinctDocs[0] : '合併多單據') };
-
-            // Clear F5 (leave header '備註' alone; F5 was requested to be empty when merging)
-            ws['F5'] = { t: 's', v: '' };
-
-            // find header row that contains 'NO.' or 'NO' or '品名'
-            let headerRow = null;
-            for (let r = 0; r < sheetArr.length; r++) {
-              const row = sheetArr[r] || [];
-              if (row.some(c => String(c).trim() === 'NO.' || String(c).trim() === 'NO') || row.some(c => String(c).trim() === '品名')) {
-                headerRow = r;
-                break;
-              }
+      
+      // 庫存管理相關功能
+      // 載入料號系列
+      function loadProductSeries() {
+        fetch('/api/product_series')
+          .then(response => response.json())
+          .then(data => {
+            const seriesSelect = document.getElementById('product-series');
+            seriesSelect.innerHTML = '<option value="">請選擇料號系列</option>';
+            
+            if (data.ok && data.series) {
+              data.series.forEach(series => {
+                const option = document.createElement('option');
+                option.value = series;
+                option.textContent = series;
+                seriesSelect.appendChild(option);
+              });
             }
-            const startRow = (headerRow !== null) ? (headerRow + 1) + 1 : 6; // next row after header
-
-            // We'll build a new output worksheet by copying template header blocks for each distinct document
-            const templateArr = sheetArr; // rows as arrays
-            const maxCols = Math.max(...templateArr.map(r => (r || []).length), 6);
-            const wsOut = {};
-            let outRow = 0; // zero-based current row in wsOut
-
-            function writeCell(sheet, c, r, value) {
-              if (value === null || value === undefined) return;
-              const cell = { t: (typeof value === 'number' ? 'n' : 's'), v: value };
-              sheet[XLSX.utils.encode_cell({ c: c, r: r })] = cell;
-            }
-
-            // For each distinct document within this date, render its own header block and items
-            const docsByDocNo = {};
-            items.forEach(it => {
-              const docNo = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
-              if (!docsByDocNo[docNo]) docsByDocNo[docNo] = [];
-              docsByDocNo[docNo].push(it);
-            });
-
-            const docEntries = Object.entries(docsByDocNo);
-            docEntries.forEach(([docNo, docItems], docIndex) => {
-              // copy template header rows (0 .. headerRow) into wsOut at outRow
-              for (let r = 0; r <= headerRow; r++) {
-                const row = templateArr[r] || [];
-                for (let c = 0; c < maxCols; c++) {
-                  const v = row[c];
-                  if (v !== undefined) writeCell(wsOut, c, outRow + r, v);
-                }
-              }
-
-              // set block-specific header cells: G3 and G4 relative to this block
-              const g3_r = outRow + 2; // G3 is row index 2 (0-based) within template
-              const g4_r = outRow + 3; // G4 is row index 3
-              const outDateBlock = (dateVal && dateVal.indexOf('-') !== -1) ? dateVal.replace(/-/g,'/') : dateVal;
-              writeCell(wsOut, 6, g3_r, outDateBlock); // G column is index 6
-              writeCell(wsOut, 6, g4_r, docNo || '');
-
-              // write items for this doc
-              let totalQty = 0;
-              let totalAmount = 0;
-              for (let i = 0; i < docItems.length; i++) {
-                const it = docItems[i];
-                const rowIndex = outRow + (startRow - 1) + i; // zero-based
-                const noStr = String(i + 1).padStart(2, '0');
-                const name = it.merged || ((it.part_no || '') + (it.version ? (' 版本' + it.version) : ''));
-                const qty = Number(it.qty) || 0;
-                const unit = Number(it.unit_price) || 0;
-                const subtotal = qty * unit;
-                totalQty += qty;
-                totalAmount += subtotal;
-                writeCell(wsOut, 0, rowIndex, noStr);
-                writeCell(wsOut, 1, rowIndex, name);
-                writeCell(wsOut, 2, rowIndex, qty);
-                writeCell(wsOut, 3, rowIndex, unit);
-                writeCell(wsOut, 4, rowIndex, subtotal);
-                const po = it.po || '';
-                const poWithRev = po ? (po + ' Rev.: 00') : '';
-                // write PO+Rev into the 備註 column (F)
-                writeCell(wsOut, 5, rowIndex, poWithRev);
-              }
-
-              // write totals row for this document block
-              const minRows = 10;
-              const totalRowIndex = outRow + (startRow - 1) + Math.max(docItems.length, minRows) + 1;
-              writeCell(wsOut, 1, totalRowIndex, '合計');
-              writeCell(wsOut, 2, totalRowIndex, totalQty);
-              writeCell(wsOut, 4, totalRowIndex, totalAmount);
-
-              // advance outRow to after this block (leave one empty row)
-              outRow = totalRowIndex + 2;
-            });
-
-            // finalize wsOut range
-            const finalEndRow = outRow + 1;
-            wsOut['!ref'] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: maxCols, r: finalEndRow } });
-
-            // replace sheet with wsOut
-            wb.Sheets[sheetName] = wsOut;
-
-            // Ensure worksheet range (!ref) covers our written area to avoid broken named ranges
-            try {
-              const origRef = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { c:0, r:0 }, e: { c:5, r: totalRowIndex } };
-              const newEndRow = Math.max(origRef.e.r || 0, totalRowIndex);
-              const newEndCol = Math.max(origRef.e.c || 5, 5);
-              ws['!ref'] = XLSX.utils.encode_range({ s: origRef.s || { c:0, r:0 }, e: { c: newEndCol, r: newEndRow } });
-            } catch (e) {
-              // ignore range errors and let SheetJS compute defaults
-              console.warn('failed to update sheet !ref', e);
-            }
-
-            // Clear workbook-level defined names to avoid invalid workbook.xml named range issues
-            try {
-              if (wb && wb.Workbook) wb.Workbook.Names = [];
-            } catch (e) {
-              console.warn('failed to clear workbook names', e);
-            }
-
-            // write back and download (filename includes date)
-            const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
-            const blob = new Blob([wbout], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            const safeDate = String(dateVal).replace(/[^0-9A-Za-z\-]/g,'');
-            link.download = `出貨單_${safeDate}_${new Date().toISOString().split('T')[0]}.xlsx`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }).catch(err => {
-            console.warn('template fetch failed, falling back to grouped AOA export', err);
-            // fallback: one AOA per date group
-            const aoa = [];
-            const fields = ['單據編號','料號','版本','數量','單價','小計','PO單號'];
-            aoa.push(fields);
-            let totalQty = 0;
-            let totalAmount = 0;
-            items.forEach(it => {
-              const qty = Number(it.qty) || 0;
-              const unit = Number(it.unit_price) || 0;
-              const subtotal = qty * unit;
-              totalQty += qty;
-              totalAmount += subtotal;
-              const docNo = it.doc_no || ((it.rawRow && it.rawRow['單據編號']) ? it.rawRow['單據編號'] : '');
-              aoa.push([
-                docNo,
-                it.merged || it.part_no || '',
-                it.version || '',
-                qty || '',
-                unit || '',
-                subtotal || '',
-                it.po || ''
-              ]);
-            });
-            aoa.push([]);
-            aoa.push(['', '合計', '', totalQty, '', totalAmount, '']);
-            const ws2 = XLSX.utils.aoa_to_sheet(aoa);
-            const wb2 = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb2, ws2, '出貨單');
-            const wbout2 = XLSX.write(wb2, { bookType:'xlsx', type:'array' });
-            const blob2 = new Blob([wbout2], { type: 'application/octet-stream' });
-            const url2 = URL.createObjectURL(blob2);
-            const link2 = document.createElement('a');
-            link2.href = url2;
-            link2.download = `出貨單_${String(dateVal).replace(/[^0-9A-Za-z\-]/g,'')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-            document.body.appendChild(link2);
-            link2.click();
-            document.body.removeChild(link2);
-            URL.revokeObjectURL(url2);
+          })
+          .catch(error => {
+            console.error('載入料號系列失敗:', error);
           });
+      }
+      
+      // 根據料號系列載入料號
+      function loadProductNumbers(series) {
+        const numberSelect = document.getElementById('product-number');
+        const nameInput = document.getElementById('product-name');
+        const priceInput = document.getElementById('stock-price');
+        
+        // 清空料號選單和產品名稱
+        numberSelect.innerHTML = '<option value="">載入中...</option>';
+        nameInput.value = '';
+        priceInput.value = '';
+        
+        if (!series) {
+          numberSelect.innerHTML = '<option value="">請先選擇料號系列</option>';
+          return;
+        }
+        
+        fetch(`/api/product_numbers?series=${encodeURIComponent(series)}`)
+          .then(response => response.json())
+          .then(data => {
+            numberSelect.innerHTML = '<option value="">請選擇料號</option>';
+            
+            if (data.ok && data.numbers) {
+              data.numbers.forEach(number => {
+                const option = document.createElement('option');
+                option.value = number;
+                option.textContent = number;
+                numberSelect.appendChild(option);
+              });
+            }
+          })
+          .catch(error => {
+            console.error('載入料號失敗:', error);
+            numberSelect.innerHTML = '<option value="">載入失敗</option>';
+          });
+      }
+      
+      // 根據料號載入產品資訊
+      function loadProductInfo(number) {
+        const nameInput = document.getElementById('product-name');
+        const priceInput = document.getElementById('stock-price');
+        
+        if (!number) {
+          nameInput.value = '';
+          priceInput.value = '';
+          return;
+        }
+        
+        fetch(`/api/product_info?number=${encodeURIComponent(number)}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.ok && data.product_info) {
+              const info = data.product_info;
+              nameInput.value = info.產品中文名稱 || '';
+              if (info.單價 !== undefined && info.單價 !== null) {
+                priceInput.value = info.單價;
+              }
+            }
+          })
+          .catch(error => {
+            console.error('載入產品資訊失敗:', error);
+          });
+      }
+      
+      // 綁定事件監聽器
+      document.getElementById('product-series').addEventListener('change', function() {
+        loadProductNumbers(this.value);
+      });
+      
+      document.getElementById('product-number').addEventListener('change', function() {
+        loadProductInfo(this.value);
+      });
+      
+      // 處理入庫表單提交
+      document.getElementById('stock-in-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          料號系列: document.getElementById('product-series').value,
+          料號: document.getElementById('product-number').value,
+          產品中文名稱: document.getElementById('product-name').value,
+          數量: parseInt(document.getElementById('stock-quantity').value),
+          單價: parseFloat(document.getElementById('stock-price').value) || null
+        };
+        
+        // 檢查必填欄位
+        if (!formData.料號系列 || !formData.料號 || !formData.數量) {
+          document.getElementById('stock-in-result').innerHTML = 
+            '<div style="color: red;">請填寫所有必填欄位</div>';
+          return;
+        }
+        
+        if (formData.數量 <= 0) {
+          document.getElementById('stock-in-result').innerHTML = 
+            '<div style="color: red;">數量必須大於 0</div>';
+          return;
+        }
+        
+        // 提交入庫請求
+        fetch('/api/stock_in', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          const resultDiv = document.getElementById('stock-in-result');
+          if (data.ok) {
+            resultDiv.innerHTML = '<div style="color: green;">✓ ' + data.message + '</div>';
+            // 清空表單（除了料號系列和料號）
+            document.getElementById('stock-quantity').value = '';
+            document.getElementById('stock-price').value = '';
+          } else {
+            resultDiv.innerHTML = '<div style="color: red;">✗ 入庫失敗: ' + data.error + '</div>';
+          }
+        })
+        .catch(error => {
+          console.error('入庫失敗:', error);
+          document.getElementById('stock-in-result').innerHTML = 
+            '<div style="color: red;">✗ 入庫失敗: 網路錯誤</div>';
         });
-        document.getElementById('create-shipping-result').innerText = '已建立出貨檔案';
+      });
+      
+      // 當切換到庫存管理頁面時載入料號系列
+      const originalShowPage = showPage;
+      showPage = function(pageId) {
+        originalShowPage(pageId);
+        if (pageId === 'page-inventory') {
+          loadProductSeries();
+        }
       };
-       // --------------------------------------------------------------
+      
     </script>
   </body>
 </html>

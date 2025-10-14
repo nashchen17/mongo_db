@@ -26,12 +26,6 @@ inventory_need_collection = db[INVENTORY_NEED_COLLECTION_NAME]
 CUSTOMER_NEED_COLLECTION_NAME = os.environ.get("CUSTOMER_NEED_COLLECTION_NAME", "customer_need")
 customer_need_collection = db[CUSTOMER_NEED_COLLECTION_NAME]
 
-# Inventory and transactions collections for 進出貨管理
-INVENTORY_COLLECTION_NAME = os.environ.get("INVENTORY_COLLECTION_NAME", "inventory")
-TRANSACTIONS_COLLECTION_NAME = os.environ.get("TRANSACTIONS_COLLECTION_NAME", "transactions")
-inventory_collection = db[INVENTORY_COLLECTION_NAME]
-transactions_collection = db[TRANSACTIONS_COLLECTION_NAME]
-
 
 @app.route("/")
 def index():
@@ -171,6 +165,175 @@ def upload_customer_need_excel():
         result = customer_need_collection.insert_many(records)
         inserted = len(result.inserted_ids)
         return jsonify({"ok": True, "inserted": inserted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# 獲取料號系列 API
+@app.route("/api/product_series", methods=["GET"])
+def get_product_series():
+    """
+    獲取所有料號系列 (去重複)
+    """
+    try:
+        # 從多個collection中取得料號系列
+        series_set = set()
+        
+        # 從products collection取得
+        PRODUCTS_COLLECTION_NAME = os.environ.get("PRODUCTS_COLLECTION_NAME", "products")
+        products_collection = db[PRODUCTS_COLLECTION_NAME]
+        
+        for coll in [products_collection, purchase_shipping_collection, inventory_need_collection, customer_need_collection]:
+            try:
+                series_docs = coll.distinct("料號系列")
+                for series in series_docs:
+                    if series and str(series).strip():
+                        series_set.add(str(series).strip())
+            except:
+                continue
+                
+        series_list = sorted(list(series_set))
+        return jsonify({"ok": True, "series": series_list})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# 根據料號系列獲取料號 API
+@app.route("/api/product_numbers", methods=["GET"])
+def get_product_numbers():
+    """
+    根據料號系列獲取料號列表
+    Query param: series (料號系列)
+    """
+    try:
+        series = request.args.get("series")
+        if not series:
+            return jsonify({"ok": False, "error": "缺少料號系列參數"}), 400
+            
+        numbers_set = set()
+        
+        # 從products collection取得
+        PRODUCTS_COLLECTION_NAME = os.environ.get("PRODUCTS_COLLECTION_NAME", "products")
+        products_collection = db[PRODUCTS_COLLECTION_NAME]
+        
+        for coll in [products_collection, purchase_shipping_collection, inventory_need_collection, customer_need_collection]:
+            try:
+                query = {"料號系列": series}
+                docs = coll.find(query, {"料號": 1, "_id": 0})
+                for doc in docs:
+                    number = doc.get("料號")
+                    if number and str(number).strip():
+                        numbers_set.add(str(number).strip())
+            except:
+                continue
+                
+        numbers_list = sorted(list(numbers_set))
+        return jsonify({"ok": True, "numbers": numbers_list})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# 根據料號獲取產品資訊 API
+@app.route("/api/product_info", methods=["GET"])
+def get_product_info():
+    """
+    根據料號獲取產品中文名稱等資訊
+    Query param: number (料號)
+    """
+    try:
+        number = request.args.get("number")
+        if not number:
+            return jsonify({"ok": False, "error": "缺少料號參數"}), 400
+            
+        # 從多個collection中搜尋產品資訊
+        product_info = {}
+        
+        PRODUCTS_COLLECTION_NAME = os.environ.get("PRODUCTS_COLLECTION_NAME", "products")
+        products_collection = db[PRODUCTS_COLLECTION_NAME]
+        
+        search_collections = [products_collection, purchase_shipping_collection, inventory_need_collection, customer_need_collection]
+        
+        for coll in search_collections:
+            try:
+                # 嘗試多種料號格式
+                queries = [
+                    {"料號": number},
+                    {"料號": str(number)},
+                ]
+                
+                # 如果是數字，也嘗試數字格式
+                try:
+                    num_value = float(number)
+                    queries.append({"料號": num_value})
+                    queries.append({"料號": int(num_value)})
+                except:
+                    pass
+                
+                for query in queries:
+                    doc = coll.find_one(query, {"產品中文名稱": 1, "單價": 1, "庫存": 1, "_id": 0})
+                    if doc:
+                        for field in ["產品中文名稱", "單價", "庫存"]:
+                            if field in doc and doc[field] is not None and field not in product_info:
+                                import math
+                                val = doc[field]
+                                if isinstance(val, float) and math.isnan(val):
+                                    continue
+                                product_info[field] = val
+                        
+                        # 如果已找到所需資訊就跳出
+                        if "產品中文名稱" in product_info:
+                            break
+                            
+                if "產品中文名稱" in product_info:
+                    break
+            except:
+                continue
+                
+        return jsonify({"ok": True, "product_info": product_info})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# 入庫 API
+@app.route("/api/stock_in", methods=["POST"])
+def stock_in():
+    """
+    入庫操作
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"ok": False, "error": "缺少請求資料"}), 400
+            
+        required_fields = ["料號系列", "料號", "數量"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"ok": False, "error": f"缺少必填欄位: {field}"}), 400
+        
+        # 準備入庫記錄
+        from datetime import datetime
+        stock_record = {
+            "料號系列": data["料號系列"],
+            "料號": data["料號"],
+            "產品中文名稱": data.get("產品中文名稱", ""),
+            "數量": data["數量"],
+            "單價": data.get("單價"),
+            "入庫時間": datetime.now().isoformat(),
+            "操作類型": "入庫"
+        }
+        
+        # 插入到庫存記錄表
+        STOCK_RECORDS_COLLECTION_NAME = os.environ.get("STOCK_RECORDS_COLLECTION_NAME", "stock_records")
+        stock_records_collection = db[STOCK_RECORDS_COLLECTION_NAME]
+        
+        result = stock_records_collection.insert_one(stock_record)
+        
+        return jsonify({
+            "ok": True, 
+            "message": "入庫成功",
+            "record_id": str(result.inserted_id)
+        })
+        
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -320,119 +483,6 @@ def search_pick():
     # 分組回傳
     result = {"pick": pick_results}
     return jsonify({"ok": True, "data": result})
-
-
-# ---------------------
-# 進出貨管理 API
-# ---------------------
-
-
-@app.route("/api/stock/in", methods=["POST"])
-def stock_in():
-    """Create an inbound (入庫) transaction and update inventory.
-    Expects JSON: { "part_no": str, "qty": number, "unit_price": number (optional), "date": ISO str (optional), "note": str (optional) }
-    """
-    data = request.get_json(force=True, silent=True)
-    if not data:
-        return jsonify({"ok": False, "error": "Missing JSON body"}), 400
-    part_no = data.get("part_no") or data.get("料號")
-    try:
-        qty = float(data.get("qty", 0))
-    except Exception:
-        return jsonify({"ok": False, "error": "Invalid qty"}), 400
-    if not part_no or qty <= 0:
-        return jsonify({"ok": False, "error": "part_no required and qty must be > 0"}), 400
-    unit_price = data.get("unit_price")
-    date = data.get("date")
-    note = data.get("note")
-
-    # Insert transaction
-    tx = {
-        "type": "in",
-        "part_no": part_no,
-        "qty": qty,
-        "unit_price": unit_price,
-        "date": date,
-        "note": note
-    }
-    try:
-        transactions_collection.insert_one(tx)
-        # Update inventory (upsert)
-        update = {"$inc": {"stock": qty}}
-        if unit_price is not None:
-            update.setdefault("$set", {})["unit_price"] = unit_price
-        inventory_collection.update_one({"part_no": part_no}, update, upsert=True)
-        return jsonify({"ok": True, "tx": tx})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-@app.route("/api/stock/out", methods=["POST"])
-def stock_out():
-    """Create an outbound (出庫) transaction and update inventory.
-    Expects JSON: { "part_no": str, "qty": number, "unit_price": number (optional), "date": ISO str (optional), "note": str (optional), "allow_negative": bool (optional) }
-    """
-    data = request.get_json(force=True, silent=True)
-    if not data:
-        return jsonify({"ok": False, "error": "Missing JSON body"}), 400
-    part_no = data.get("part_no") or data.get("料號")
-    try:
-        qty = float(data.get("qty", 0))
-    except Exception:
-        return jsonify({"ok": False, "error": "Invalid qty"}), 400
-    if not part_no or qty <= 0:
-        return jsonify({"ok": False, "error": "part_no required and qty must be > 0"}), 400
-    unit_price = data.get("unit_price")
-    date = data.get("date")
-    note = data.get("note")
-    allow_negative = bool(data.get("allow_negative", False))
-
-    # Check inventory
-    current = inventory_collection.find_one({"part_no": part_no}) or {"stock": 0}
-    cur_stock = current.get("stock", 0) or 0
-    if not allow_negative and cur_stock < qty:
-        return jsonify({"ok": False, "error": "Insufficient stock", "stock": cur_stock}), 400
-
-    tx = {
-        "type": "out",
-        "part_no": part_no,
-        "qty": qty,
-        "unit_price": unit_price,
-        "date": date,
-        "note": note
-    }
-    try:
-        transactions_collection.insert_one(tx)
-        inventory_collection.update_one({"part_no": part_no}, {"$inc": {"stock": -qty}}, upsert=True)
-        return jsonify({"ok": True, "tx": tx, "stock_before": cur_stock, "stock_after": cur_stock - qty})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-@app.route("/api/stock", methods=["GET"])
-def get_stock():
-    """Return current inventory list. Optional query param part_no to filter."""
-    part_no = request.args.get("part_no")
-    query = {}
-    if part_no:
-        query["part_no"] = part_no
-    docs = list(inventory_collection.find(query, {"_id": 0}))
-    return jsonify({"ok": True, "count": len(docs), "items": docs})
-
-
-@app.route("/api/stock/history", methods=["GET"])
-def stock_history():
-    """Return transactions history. Optional filters: part_no, type (in/out), limit"""
-    part_no = request.args.get("part_no")
-    tx_type = request.args.get("type")
-    limit = int(request.args.get("limit", "100"))
-    query = {}
-    if part_no:
-        query["part_no"] = part_no
-    if tx_type in ("in", "out"):
-        query["type"] = tx_type
-    docs = list(transactions_collection.find(query, {"_id": 0}).sort([("date", 1)]).limit(limit))
-    return jsonify({"ok": True, "count": len(docs), "transactions": docs})
 
 
 # Static files (optional)

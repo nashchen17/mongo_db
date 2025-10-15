@@ -20,29 +20,29 @@
         <div id="page-home" class="card">
           <h3>資料庫匯入功能</h3>
           <div class="card">
-            <h3>匯入採購與出貨表</h3>
+            <h3>匯入FS訂單明細</h3>
             <form id="upload-purchase-shipping-form" enctype="multipart/form-data">
               <input type="file" id="purchase-shipping-file-input" name="file" accept=".xlsx" />
               <br />
-              <button type="submit">匯入 Excel 採購與出貨表</button>
+              <button type="submit">匯入 Excel FS訂單明細</button>
             </form>
             <div id="upload-purchase-shipping-result"></div>
           </div>
           <div class="card">
-            <h3>匯入庫存與採購需求表</h3>
+            <h3>匯入FS出貨庫存統計表</h3>
             <form id="upload-inventory-need-form" enctype="multipart/form-data">
               <input type="file" id="inventory-need-file-input" name="file" accept=".xlsx" />
               <br />
-              <button type="submit">匯入 Excel 庫存與採購需求表</button>
+              <button type="submit">匯入 Excel FS出貨庫存統計表</button>
             </form>
             <div id="upload-inventory-need-result"></div>
           </div>
           <div class="card">
-            <h3>匯入客戶需求表</h3>
+            <h3>匯入FS需求表</h3>
             <form id="upload-customer-need-form" enctype="multipart/form-data">
               <input type="file" id="customer-need-file-input" name="file" accept=".xlsx" />
               <br />
-              <button type="submit">匯入 Excel 客戶需求表</button>
+              <button type="submit">匯入 Excel FS需求表</button>
             </form>
             <div id="upload-customer-need-result"></div>
           </div>
@@ -161,7 +161,7 @@
           body: formData
         });
         const data = await res.json();
-        document.getElementById('upload-purchase-shipping-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆採購與出貨資料` : `錯誤：${data.error}`;
+        document.getElementById('upload-purchase-shipping-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆FS訂單明細資料` : `錯誤：${data.error}`;
       };
       document.getElementById('upload-inventory-need-form').onsubmit = async function(e) {
         e.preventDefault();
@@ -172,7 +172,7 @@
           body: formData
         });
         const data = await res.json();
-        document.getElementById('upload-inventory-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆庫存與採購需求資料` : `錯誤：${data.error}`;
+        document.getElementById('upload-inventory-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆FS出貨庫存統計資料` : `錯誤：${data.error}`;
       };
       document.getElementById('upload-customer-need-form').onsubmit = async function(e) {
         e.preventDefault();
@@ -183,7 +183,7 @@
           body: formData
         });
         const data = await res.json();
-        document.getElementById('upload-customer-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆客戶需求資料` : `錯誤：${data.error}`;
+        document.getElementById('upload-customer-need-result').innerText = data.ok ? `成功匯入 ${data.inserted} 筆FS需求資料` : `錯誤：${data.error}`;
       };
       // 撿貨資訊表搜尋功能
         // 前端排序用暫存
@@ -215,7 +215,7 @@
             const fields = ["MIC需求起日", "MIC需求訖日", "料號", "版本", "產品中文名稱", "數量", "單價", "PO單號", "庫存"];
             if (db === 'customer_need') {
               html += `<div style='display:flex; align-items:center; justify-content:space-between;'>`;
-              html += `<h4 style='margin:0;'>客戶需求表</h4>`;
+              html += `<h4 style='margin:0;'>FS需求表</h4>`;
               html += `<div style='display:flex; gap:0.5rem; align-items:center;'>
                 <select id='pick-sort-field-inline' style='width:120px;'>
                   <option value='MIC需求起日'>MIC需求起日</option>
@@ -251,7 +251,7 @@
               }
               html += '</tbody></table></div>';
             } else {
-              html += `<h4>${db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表'}</h4>`;
+              html += `<h4>${db === 'purchase_shipping' ? 'FS訂單明細' : 'FS出貨庫存統計表'}</h4>`;
               html += `<table border='1' cellpadding='4' style='margin-bottom:1rem;'><thead><tr>`;
               for (const f of fields) html += `<th>${f}</th>`;
               html += '</tr></thead><tbody>';
@@ -327,8 +327,8 @@
           let exportData = [];
           for (const [db, rows] of Object.entries(pickSearchData)) {
             let sortedRows = sortRows(rows, sort_field, sort_order);
-            const dbName = db === 'customer_need' ? '客戶需求表' : 
-                          db === 'purchase_shipping' ? '採購與出貨表' : '庫存與採購需求表';
+            const dbName = db === 'customer_need' ? 'FS需求表' : 
+                          db === 'purchase_shipping' ? 'FS訂單明細' : 'FS出貨庫存統計表';
             
             // 新增分隔行
             if (exportData.length > 0) {

@@ -15,6 +15,7 @@
         <a href="#shipping" id="nav-shipping">進出貨管理</a>
         <a href="#material" id="nav-material">物料資訊管理</a>
         <a href="#pick" id="nav-pick">撿貨資訊表</a>
+        <a href="#lotto" id="nav-lotto">大樂透分析</a>
       </nav>
       <div class="content">
         <div id="page-home" class="card">
@@ -121,6 +122,33 @@
           </form>
           <div id="pick-search-result"></div>
         </div>
+        <div id="page-lotto" class="card" style="display:none;">
+          <h3>大樂透號碼分析</h3>
+          
+          <!-- 上傳歷史開獎資料 -->
+          <div class="card" style="margin-bottom: 2rem;">
+            <h4>上傳歷史開獎資料</h4>
+            <p style="color: #666; margin-bottom: 1rem;">
+              請上傳包含歷史開獎號碼的 Excel 檔案。檔案應包含號碼欄位（例如：號碼1, 號碼2, ..., 號碼6）
+            </p>
+            <form id="upload-lotto-history-form" enctype="multipart/form-data">
+              <input type="file" id="lotto-history-file-input" name="file" accept=".xlsx" />
+              <br />
+              <button type="submit" style="margin-top: 1rem; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">上傳歷史開獎資料</button>
+            </form>
+            <div id="upload-lotto-history-result" style="margin-top: 1rem;"></div>
+          </div>
+          
+          <!-- 分析結果 -->
+          <div class="card">
+            <h4>號碼分析與推薦</h4>
+            <p style="color: #666; margin-bottom: 1rem;">
+              根據歷史開獎資料分析，推薦最高機率的5組號碼組合
+            </p>
+            <button id="analyze-lotto-btn" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">開始分析</button>
+            <div id="lotto-analysis-result" style="margin-top: 2rem;"></div>
+          </div>
+        </div>
       </div>
     </div>
     <script>
@@ -131,6 +159,7 @@
         document.getElementById('page-shipping').style.display = 'none';
         document.getElementById('page-material').style.display = 'none';
         document.getElementById('page-pick').style.display = 'none';
+        document.getElementById('page-lotto').style.display = 'none';
         document.getElementById(pageId).style.display = '';
         // sidebar active
         document.getElementById('nav-home').classList.remove('active');
@@ -138,17 +167,20 @@
         document.getElementById('nav-shipping').classList.remove('active');
         document.getElementById('nav-material').classList.remove('active');
         document.getElementById('nav-pick').classList.remove('active');
+        document.getElementById('nav-lotto').classList.remove('active');
         if(pageId==='page-home') document.getElementById('nav-home').classList.add('active');
         if(pageId==='page-inventory') document.getElementById('nav-inventory').classList.add('active');
         if(pageId==='page-shipping') document.getElementById('nav-shipping').classList.add('active');
         if(pageId==='page-material') document.getElementById('nav-material').classList.add('active');
         if(pageId==='page-pick') document.getElementById('nav-pick').classList.add('active');
+        if(pageId==='page-lotto') document.getElementById('nav-lotto').classList.add('active');
       }
       document.getElementById('nav-home').onclick = function(){showPage('page-home');};
       document.getElementById('nav-inventory').onclick = function(){showPage('page-inventory');};
       document.getElementById('nav-shipping').onclick = function(){showPage('page-shipping');};
       document.getElementById('nav-material').onclick = function(){showPage('page-material');};
       document.getElementById('nav-pick').onclick = function(){showPage('page-pick');};
+      document.getElementById('nav-lotto').onclick = function(){showPage('page-lotto');};
       // 預設顯示首頁
       showPage('page-home');
       // 匯入功能
@@ -546,6 +578,96 @@
         if (pageId === 'page-inventory') {
           loadProductSeries();
         }
+      };
+      
+      // 大樂透歷史資料上傳功能
+      document.getElementById('upload-lotto-history-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('file', document.getElementById('lotto-history-file-input').files[0]);
+        
+        const resultDiv = document.getElementById('upload-lotto-history-result');
+        resultDiv.innerHTML = '<div style="color: #007bff;">上傳中...</div>';
+        
+        const res = await fetch('/api/upload_lotto_history', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          resultDiv.innerHTML = `<div style="color: green;">✓ 成功上傳 ${data.inserted} 筆歷史開獎資料</div>`;
+          // 清空分析結果
+          document.getElementById('lotto-analysis-result').innerHTML = '';
+        } else {
+          resultDiv.innerHTML = `<div style="color: red;">✗ 上傳失敗：${data.error}</div>`;
+        }
+      };
+      
+      // 大樂透號碼分析功能
+      document.getElementById('analyze-lotto-btn').onclick = async function() {
+        const resultDiv = document.getElementById('lotto-analysis-result');
+        resultDiv.innerHTML = '<div style="color: #007bff;">分析中...</div>';
+        
+        const res = await fetch('/api/analyze_lotto');
+        const data = await res.json();
+        
+        if (!data.ok) {
+          resultDiv.innerHTML = `<div style="color: red;">✗ 分析失敗：${data.error}</div>`;
+          return;
+        }
+        
+        // 顯示推薦組合
+        let html = '<div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">';
+        html += '<h4 style="margin-top: 0; color: #28a745;">🎯 推薦號碼組合（根據歷史資料分析）</h4>';
+        
+        data.推薦組合.forEach(set => {
+          html += `<div style="background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 4px; border-left: 4px solid #007bff;">`;
+          html += `<div style="font-weight: bold; margin-bottom: 0.5rem;">第 ${set.組別} 組 - ${set.說明}</div>`;
+          html += `<div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">`;
+          set.號碼.forEach((num, idx) => {
+            html += `<div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${num}</div>`;
+          });
+          html += `</div>`;
+          html += `<div style="font-size: 0.85rem; color: #666;">各號碼出現次數：${set.頻率.join(', ')}</div>`;
+          html += `</div>`;
+        });
+        
+        html += '</div>';
+        
+        // 顯示統計資訊
+        html += '<div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px;">';
+        html += '<h4 style="margin-top: 0;">📊 統計資訊</h4>';
+        html += `<p><strong>總開獎期數：</strong>${data.統計資訊.總開獎期數} 期</p>`;
+        
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">';
+        
+        // 最常出現號碼
+        html += '<div>';
+        html += '<h5>🔥 最常出現的號碼（前10名）</h5>';
+        html += '<table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr><th>號碼</th><th>出現次數</th></tr></thead><tbody>';
+        data.統計資訊.最常出現號碼.forEach(([num, count]) => {
+          html += `<tr><td style="text-align: center; font-weight: bold; color: #007bff;">${num}</td><td style="text-align: center;">${count}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        html += '</div>';
+        
+        // 最少出現號碼
+        html += '<div>';
+        html += '<h5>❄️ 最少出現的號碼（後10名）</h5>';
+        html += '<table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr><th>號碼</th><th>出現次數</th></tr></thead><tbody>';
+        data.統計資訊.最少出現號碼.forEach(([num, count]) => {
+          html += `<tr><td style="text-align: center; font-weight: bold; color: #6c757d;">${num}</td><td style="text-align: center;">${count}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        html += '</div>';
+        
+        html += '</div>';
+        html += '</div>';
+        
+        resultDiv.innerHTML = html;
       };
       
     </script>

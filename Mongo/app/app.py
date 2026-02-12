@@ -26,6 +26,10 @@ inventory_need_collection = db[INVENTORY_NEED_COLLECTION_NAME]
 CUSTOMER_NEED_COLLECTION_NAME = os.environ.get("CUSTOMER_NEED_COLLECTION_NAME", "customer_need")
 customer_need_collection = db[CUSTOMER_NEED_COLLECTION_NAME]
 
+# 新增大樂透歷史開獎資料匯入 API
+LOTTO_HISTORY_COLLECTION_NAME = os.environ.get("LOTTO_HISTORY_COLLECTION_NAME", "lotto_history")
+lotto_history_collection = db[LOTTO_HISTORY_COLLECTION_NAME]
+
 
 @app.route("/")
 def index():
@@ -483,6 +487,161 @@ def search_pick():
     # 分組回傳
     result = {"pick": pick_results}
     return jsonify({"ok": True, "data": result})
+
+
+# 大樂透歷史資料上傳 API
+@app.route("/api/upload_lotto_history", methods=["POST"])
+def upload_lotto_history():
+    """
+    上傳大樂透歷史開獎 Excel 資料
+    """
+    if "file" not in request.files:
+        return jsonify({"ok": False, "error": "No file part"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"ok": False, "error": "No selected file"}), 400
+    try:
+        in_memory = io.BytesIO(file.read())
+        df = pd.read_excel(in_memory, engine="openpyxl")
+        df = df.where(pd.notnull(df), None)
+        records = df.to_dict(orient="records")
+        if len(records) == 0:
+            return jsonify({"ok": False, "error": "Excel file contains no rows"}), 400
+        
+        # 清空現有資料再匯入新資料
+        lotto_history_collection.delete_many({})
+        result = lotto_history_collection.insert_many(records)
+        inserted = len(result.inserted_ids)
+        return jsonify({"ok": True, "inserted": inserted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# 大樂透號碼分析 API
+@app.route("/api/analyze_lotto", methods=["GET"])
+def analyze_lotto():
+    """
+    分析歷史開獎資料，找出最高機率的5組號碼組合
+    """
+    try:
+        from collections import Counter
+        
+        # 從資料庫取得所有歷史開獎記錄
+        records = list(lotto_history_collection.find({}, {"_id": 0}))
+        
+        if len(records) == 0:
+            return jsonify({"ok": False, "error": "尚無歷史開獎資料，請先上傳"}), 400
+        
+        # 統計每個號碼出現的次數（分析所有可能的號碼欄位）
+        number_counter = Counter()
+        
+        for record in records:
+            # 假設開獎號碼欄位可能是：號碼1, 號碼2, ..., 號碼6, 或 第1個號碼, 第2個號碼 等
+            numbers = []
+            
+            # 嘗試各種可能的欄位名稱
+            for i in range(1, 8):  # 大樂透通常是6個號碼+1個特別號
+                possible_keys = [
+                    f"號碼{i}", f"第{i}個號碼", f"number{i}", f"Number{i}",
+                    f"第{i}號", f"球{i}", f"n{i}", f"N{i}"
+                ]
+                for key in possible_keys:
+                    if key in record and record[key] is not None:
+                        try:
+                            num = int(record[key])
+                            if 1 <= num <= 49:  # 大樂透號碼範圍 1-49
+                                numbers.append(num)
+                            break
+                        except (ValueError, TypeError):
+                            continue
+            
+            # 如果沒有找到標準欄位，嘗試直接從所有欄位中提取數字
+            if not numbers:
+                for key, value in record.items():
+                    if value is not None:
+                        try:
+                            num = int(value)
+                            if 1 <= num <= 49:
+                                numbers.append(num)
+                        except (ValueError, TypeError):
+                            continue
+            
+            # 將這組號碼加入統計
+            for num in numbers:
+                number_counter[num] += 1
+        
+        # 取得出現次數最多的號碼
+        most_common = number_counter.most_common(49)  # 所有號碼
+        
+        if len(most_common) < 6:
+            return jsonify({"ok": False, "error": "歷史資料不足，無法分析"}), 400
+        
+        # 生成5組最高機率的號碼組合
+        # 策略：使用出現頻率最高的號碼組合，每組略有變化
+        top_numbers = [num for num, count in most_common[:15]]  # 取前15個最常出現的號碼
+        
+        result_sets = []
+        
+        # 第1組：前6個最常出現的號碼
+        set1 = sorted(top_numbers[:6])
+        result_sets.append({
+            "組別": 1,
+            "號碼": set1,
+            "說明": "出現頻率前6名",
+            "頻率": [number_counter[n] for n in set1]
+        })
+        
+        # 第2組：第1-5名 + 第7名
+        set2 = sorted(top_numbers[:5] + [top_numbers[6]])
+        result_sets.append({
+            "組別": 2,
+            "號碼": set2,
+            "說明": "出現頻率前5名 + 第7名",
+            "頻率": [number_counter[n] for n in set2]
+        })
+        
+        # 第3組：第2-7名
+        set3 = sorted(top_numbers[1:7])
+        result_sets.append({
+            "組別": 3,
+            "號碼": set3,
+            "說明": "出現頻率第2-7名",
+            "頻率": [number_counter[n] for n in set3]
+        })
+        
+        # 第4組：第1,3,5,7,9,11名（間隔選取）
+        set4 = sorted([top_numbers[i] for i in [0, 2, 4, 6, 8, 10]])
+        result_sets.append({
+            "組別": 4,
+            "號碼": set4,
+            "說明": "出現頻率間隔選取",
+            "頻率": [number_counter[n] for n in set4]
+        })
+        
+        # 第5組：第4-9名
+        set5 = sorted(top_numbers[3:9])
+        result_sets.append({
+            "組別": 5,
+            "號碼": set5,
+            "說明": "出現頻率第4-9名",
+            "頻率": [number_counter[n] for n in set5]
+        })
+        
+        # 統計資訊
+        stats = {
+            "總開獎期數": len(records),
+            "最常出現號碼": most_common[:10],
+            "最少出現號碼": most_common[-10:]
+        }
+        
+        return jsonify({
+            "ok": True,
+            "推薦組合": result_sets,
+            "統計資訊": stats
+        })
+        
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # Static files (optional)

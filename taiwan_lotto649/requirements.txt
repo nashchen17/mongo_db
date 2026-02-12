@@ -1,0 +1,12 @@
+# 台灣大樂透分析工具所需套件
+
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Optional: 如果需要更進階的網頁爬取
+# selenium>=4.0.0

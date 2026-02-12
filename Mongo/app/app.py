@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
+from collections import Counter
+from datetime import datetime
 import pandas as pd
 import os
 import io
@@ -315,7 +317,6 @@ def stock_in():
                 return jsonify({"ok": False, "error": f"缺少必填欄位: {field}"}), 400
         
         # 準備入庫記錄
-        from datetime import datetime
         stock_record = {
             "料號系列": data["料號系列"],
             "料號": data["料號"],
@@ -508,7 +509,8 @@ def upload_lotto_history():
         if len(records) == 0:
             return jsonify({"ok": False, "error": "Excel file contains no rows"}), 400
         
-        # 清空現有資料再匯入新資料
+        # 清空現有資料再匯入新資料 (替換策略，以確保分析基於完整且一致的資料集)
+        # 注意：此操作會刪除所有現有的歷史開獎資料，僅保留新上傳的資料
         lotto_history_collection.delete_many({})
         result = lotto_history_collection.insert_many(records)
         inserted = len(result.inserted_ids)
@@ -517,15 +519,12 @@ def upload_lotto_history():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# 大樂透號碼分析 API
 @app.route("/api/analyze_lotto", methods=["GET"])
 def analyze_lotto():
     """
     分析歷史開獎資料，找出最高機率的5組號碼組合
     """
     try:
-        from collections import Counter
-        
         # 從資料庫取得所有歷史開獎記錄
         records = list(lotto_history_collection.find({}, {"_id": 0}))
         
@@ -575,6 +574,10 @@ def analyze_lotto():
         
         if len(most_common) < 6:
             return jsonify({"ok": False, "error": "歷史資料不足，無法分析"}), 400
+        
+        # 確保至少有15個不同的號碼用於生成多組組合
+        if len(most_common) < 15:
+            return jsonify({"ok": False, "error": f"歷史資料中僅有 {len(most_common)} 個不同號碼，至少需要 15 個才能生成多樣化的推薦組合"}), 400
         
         # 生成5組最高機率的號碼組合
         # 策略：使用出現頻率最高的號碼組合，每組略有變化

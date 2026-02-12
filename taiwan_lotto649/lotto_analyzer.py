@@ -239,13 +239,21 @@ class TaiwanLotto649Analyzer:
         
         # 策略1: 純熱門號碼組合
         combo1 = sorted(random.sample(top_numbers, 6))
-        combinations.append(('熱門號碼組合', combo1))
+        combinations.append({
+            'name': '熱門號碼組合',
+            'numbers': combo1,
+            'description': '全部選擇出現頻率最高的號碼'
+        })
         
         # 策略2: 4熱門 + 2次熱門
         hot_4 = random.sample(top_numbers[:10], 4)
         medium_2 = random.sample(medium_numbers, 2)
         combo2 = sorted(hot_4 + medium_2)
-        combinations.append(('熱門+次熱門組合', combo2))
+        combinations.append({
+            'name': '熱門+次熱門組合',
+            'numbers': combo2,
+            'description': '4個熱門號碼搭配2個次熱門號碼'
+        })
         
         # 策略3: 平衡分佈（從不同區間選號）
         zone1 = [n for n in top_numbers if 1 <= n <= 16][:2]
@@ -258,17 +266,29 @@ class TaiwanLotto649Analyzer:
             extra = [n for n in top_numbers if n not in combo3_numbers]
             combo3_numbers.extend(extra[:6-len(combo3_numbers)])
         combo3 = sorted(combo3_numbers[:6])
-        combinations.append(('區間平衡組合', combo3))
+        combinations.append({
+            'name': '區間平衡組合',
+            'numbers': combo3,
+            'description': '從小號區(1-16)、中號區(17-33)、大號區(34-49)各選2個'
+        })
         
         # 策略4: 奇偶平衡
         odd_hot = [n for n in top_numbers if n % 2 == 1][:3]
         even_hot = [n for n in top_numbers if n % 2 == 0][:3]
         combo4 = sorted(odd_hot + even_hot)
-        combinations.append(('奇偶平衡組合', combo4))
+        combinations.append({
+            'name': '奇偶平衡組合',
+            'numbers': combo4,
+            'description': '3個奇數、3個偶數的平衡組合'
+        })
         
         # 策略5: 隨機熱門混合
         combo5 = sorted(random.sample(top_numbers[:12], 6))
-        combinations.append(('隨機熱門組合', combo5))
+        combinations.append({
+            'name': '隨機熱門組合',
+            'numbers': combo5,
+            'description': '從前12名熱門號碼中隨機選擇'
+        })
         
         return combinations[:num_combinations]
     
@@ -281,9 +301,14 @@ class TaiwanLotto649Analyzer:
         print("   樂透開獎為獨立隨機事件，歷史頻率不代表未來機率")
         print("-"*60)
         
-        for idx, (strategy, numbers) in enumerate(combinations, 1):
-            print(f"\n組合 {idx}: {strategy}")
+        for idx, combo in enumerate(combinations, 1):
+            name = combo['name']
+            numbers = combo['numbers']
+            description = combo['description']
+            
+            print(f"\n組合 {idx}: {name}")
             print(f"號碼: {' - '.join(f'{n:02d}' for n in numbers)}")
+            print(f"說明: {description}")
             
             # 顯示這些號碼的歷史頻率
             avg_freq = sum(self.number_frequency[n] for n in numbers) / len(numbers)
@@ -321,9 +346,14 @@ class TaiwanLotto649Analyzer:
             f.write("-"*60 + "\n\n")
             
             combinations = self.generate_recommended_combinations(5)
-            for idx, (strategy, numbers) in enumerate(combinations, 1):
-                f.write(f"組合 {idx}: {strategy}\n")
+            for idx, combo in enumerate(combinations, 1):
+                name = combo['name']
+                numbers = combo['numbers']
+                description = combo['description']
+                
+                f.write(f"組合 {idx}: {name}\n")
                 f.write(f"號碼: {' - '.join(f'{n:02d}' for n in numbers)}\n")
+                f.write(f"說明: {description}\n")
                 avg_freq = sum(self.number_frequency[n] for n in numbers) / len(numbers)
                 f.write(f"平均出現次數: {avg_freq:.1f}\n\n")
             

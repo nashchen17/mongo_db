@@ -37,9 +37,11 @@ def quick_demo():
     combinations = analyzer.generate_recommended_combinations(3)
     
     print("\n【推薦號碼組合】")
-    for idx, (strategy, numbers) in enumerate(combinations, 1):
+    for idx, combo in enumerate(combinations, 1):
+        name = combo['name']
+        numbers = combo['numbers']
         numbers_str = " - ".join(f"{n:02d}" for n in numbers)
-        print(f"  組合 {idx} ({strategy}): {numbers_str}")
+        print(f"  組合 {idx} ({name}): {numbers_str}")
     
     # 6. 匯出結果
     print("\n步驟 5: 匯出分析結果")
